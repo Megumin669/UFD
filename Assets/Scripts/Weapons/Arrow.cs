@@ -8,6 +8,9 @@ public class Arrow : MonoBehaviour
     public bool stickToSurfaces = true;
     public LayerMask targetLayers = -1;
     
+    [Header("Flight Settings")]
+    public float gravityScale = 1f;
+    
     [Header("Effects")]
     public GameObject hitEffect;
     public AudioClip hitSound;
@@ -16,11 +19,19 @@ public class Arrow : MonoBehaviour
     private bool hasHit = false;
     private Rigidbody rb;
     private AudioSource audioSource;
+    private float drawPower = 1f;
     
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         audioSource = GetComponent<AudioSource>();
+        
+        // Setup arrow physics for simple forward flight
+        if (rb != null)
+        {
+            rb.freezeRotation = true; // No rotation during flight
+            rb.useGravity = true; // Let gravity pull it down naturally
+        }
         
         // Auto-destroy after lifetime
         Destroy(gameObject, lifeTime);
@@ -37,15 +48,14 @@ public class Arrow : MonoBehaviour
                 Physics.IgnoreCollision(arrowCollider, shooterCollider);
             }
         }
+        
     }
     
     void FixedUpdate()
     {
-        // Rotate arrow to face movement direction
-        if (rb != null && !hasHit && rb.linearVelocity.magnitude > 0.1f)
-        {
-            transform.rotation = Quaternion.LookRotation(rb.linearVelocity);
-        }
+        // Arrow always faces forward - no rotation changes
+        // Gravity will naturally make it fall over time
+        // Draw power affects how long it maintains forward momentum
     }
     
     void OnTriggerEnter(Collider other)
@@ -131,5 +141,15 @@ public class Arrow : MonoBehaviour
         lifeTime = newLifetime;
         CancelInvoke();
         Destroy(gameObject, lifeTime);
+    }
+    
+    public void SetDrawPower(float power)
+    {
+        drawPower = power;
+        // Higher draw power means stronger initial velocity and less affected by gravity
+        if (rb != null)
+        {
+            rb.mass = 1f / Mathf.Max(power, 0.1f); // Lower mass = less gravity effect
+        }
     }
 }

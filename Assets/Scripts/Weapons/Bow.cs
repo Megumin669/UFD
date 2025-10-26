@@ -26,6 +26,9 @@ public class Bow : BaseWeapon
     public int trajectoryPoints = 30;
     public float trajectoryTimeStep = 0.1f;
     
+    [Header("UI Feedback")]
+    public bool showDrawPowerInConsole = false;
+    
     private bool isDrawing = false;
     private float drawStartTime;
     private float currentDrawPower = 0f;
@@ -79,6 +82,9 @@ public class Bow : BaseWeapon
         {
             UpdateDraw();
             UpdateTrajectoryPreview();
+            
+            // Check for mouse button release to fire arrow
+            CheckForRelease();
         }
     }
     
@@ -93,11 +99,23 @@ public class Bow : BaseWeapon
         
         playerCamera = camera;
         
+        // This method is called when attack input is pressed
+        // For bow, we start drawing immediately
         if (!isDrawing)
         {
             StartDraw();
         }
-        else
+    }
+    
+    void CheckForRelease()
+    {
+        // Check if left mouse button is released
+        if (Input.GetMouseButtonUp(0))
+        {
+            ReleaseBow();
+        }
+        // Also check if we've been drawing for too long without input
+        else if (Time.time - drawStartTime > maxDrawTime + 1f)
         {
             ReleaseBow();
         }
@@ -148,6 +166,12 @@ public class Bow : BaseWeapon
         float drawTime = Time.time - drawStartTime;
         float normalizedDrawTime = Mathf.Clamp01(drawTime / maxDrawTime);
         currentDrawPower = drawPowerCurve.Evaluate(normalizedDrawTime);
+        
+        // Optional debug output
+        if (showDrawPowerInConsole)
+        {
+            Debug.Log($"Draw Power: {currentDrawPower:F2} | Draw Time: {drawTime:F2}s");
+        }
         
         // Auto-release if held too long
         if (drawTime >= maxDrawTime)
@@ -210,32 +234,30 @@ public class Bow : BaseWeapon
         // Calculate damage based on draw power
         int finalDamage = Mathf.RoundToInt(attackDamage * drawPower);
         
-        // Instantiate arrow
+        // Spawn arrow facing the player's aim direction
         GameObject arrow = Instantiate(arrowPrefab, spawnPosition, Quaternion.LookRotation(shootDirection));
         
-        // Setup arrow physics
-        if (arrow.TryGetComponent<Rigidbody>(out Rigidbody arrowRb))
-        {
-            arrowRb.linearVelocity = shootDirection * finalSpeed;
-            arrowRb.useGravity = useGravity;
-            if (useGravity)
-            {
-                arrowRb.linearDamping = 0.1f; // Air resistance
-                Physics.gravity = new Vector3(0, -9.81f * gravityMultiplier, 0);
-            }
-        }
-        
-        // Setup arrow damage (if arrow has a damage component)
+        // Setup arrow component
         if (arrow.TryGetComponent<Arrow>(out Arrow arrowComponent))
         {
             arrowComponent.SetDamage(finalDamage);
             arrowComponent.SetShooter(gameObject);
+            // Note: Draw power will be handled by arrow mass and physics
         }
         
-        // Add rotation for realistic arrow flight
-        if (arrow.TryGetComponent<Rigidbody>(out Rigidbody rb))
+        // Setup simple physics - just forward velocity
+        if (arrow.TryGetComponent<Rigidbody>(out Rigidbody arrowRb))
         {
-            rb.angularVelocity = shootDirection * 2f; // Slight spin
+            // Arrow flies straight in the aim direction
+            arrowRb.linearVelocity = shootDirection * finalSpeed;
+            arrowRb.useGravity = useGravity;
+            if (useGravity)
+            {
+                arrowRb.linearDamping = 0.05f; // Light air resistance
+            }
+            
+            // No rotation - arrow stays facing forward
+            arrowRb.freezeRotation = true;
         }
     }
     
@@ -245,6 +267,11 @@ public class Bow : BaseWeapon
         
         Vector3 startPos = arrowSpawnPoint != null ? arrowSpawnPoint.position : transform.position;
         Vector3 velocity = playerCamera.transform.forward * (projectileSpeed * currentDrawPower);
+        
+        // Change trajectory color based on draw power
+        Color trajectoryColor = Color.Lerp(Color.red, Color.green, currentDrawPower);
+        trajectoryLine.startColor = trajectoryColor;
+        trajectoryLine.endColor = trajectoryColor;
         
         trajectoryLine.positionCount = trajectoryPoints;
         
