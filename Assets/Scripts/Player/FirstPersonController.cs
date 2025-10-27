@@ -176,11 +176,8 @@
 
             HandleHeadBob();
 
-            // Handle attack input (continuous check for holding)
-            if (input.Attack.IsPressed())
-            {
-                Attack();
-            }
+            // Handle weapon-specific input logic
+            HandleWeaponInput();
 
             bool wantsToCrouch = canCrouch && input.Crouch.IsPressed() && !isSliding;
             Vector3 point1 = transform.position + characterController.center - Vector3.up * (characterController.height * 0.5f);
@@ -362,23 +359,88 @@
         void AssignInputs()
         {
             input.Jump.performed += ctx => Jump();
-            input.Attack.started += ctx => Attack();
+            // Remove the Attack.started event as we'll handle it in HandleWeaponInput()
+            // input.Attack.started += ctx => Attack();
+        }
+        
+        void HandleWeaponInput()
+        {
+            if (currentWeapon == null) return;
+            
+            // Special handling for bow (needs continuous input for drawing)
+            if (currentWeapon is Bow bow)
+            {
+                // Start drawing when attack button is first pressed
+                if (input.Attack.WasPressedThisFrame())
+                {
+                    Attack();
+                }
+                // Pass input state to bow for release detection
+                if (input.Attack.WasReleasedThisFrame() && bow.IsDrawing())
+                {
+                    bow.ForceRelease();
+                }
+            }
+            else
+            {
+                // For all other weapons (like Staff), only respond to single clicks
+                if (input.Attack.WasPressedThisFrame())
+                {
+                    Attack();
+                }
+            }
+        }
+        
+        // Public method to check input state for weapons
+        public bool IsAttackButtonPressed()
+        {
+            return input.Attack.IsPressed();
+        }
+        
+        public bool WasAttackButtonReleasedThisFrame()
+        {
+            return input.Attack.WasReleasedThisFrame();
         }
 
         // Animation System
         public void ChangeAnimationState(string newState)
         {
             if (currentAnimationState == newState) return;
-            currentAnimationState = newState;
-            if (animator != null)
+            if (animator == null) return;
+            
+            // Check if the animation state exists before trying to play it
+            if (HasAnimationState(newState))
+            {
+                currentAnimationState = newState;
                 animator.CrossFadeInFixedTime(currentAnimationState, 0.2f);
+            }
+        }
+        
+        private bool HasAnimationState(string stateName)
+        {
+            if (animator == null || animator.runtimeAnimatorController == null) return false;
+            
+            // Check if state exists in any layer
+            for (int i = 0; i < animator.layerCount; i++)
+            {
+                if (animator.HasState(i, Animator.StringToHash(stateName)))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         void SetAnimations()
         {
             if (animator == null) return;
             
-            if (!attacking)
+            // Check if we're using a bow and drawing
+            bool isBowDrawing = currentWeapon != null && currentWeapon is Bow bow && bow.IsDrawing();
+            
+            // Don't override animations when attacking with non-bow weapons
+            // But allow movement animations when drawing a bow
+            if (!attacking || isBowDrawing)
             {
                 Vector3 horizontalVelocity = new Vector3(characterController.velocity.x, 0f, characterController.velocity.z);
                 if (horizontalVelocity.magnitude < 0.1f)

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class Bow : BaseWeapon
 {
@@ -40,7 +41,10 @@ public class Bow : BaseWeapon
         
         // Set default values for bow
         if (weaponName == "Base Weapon") weaponName = "Bow";
-        if (attackAnimations.Length == 0) 
+        
+        // Only set default animations if none are specified in Inspector
+        if (attackAnimations == null || attackAnimations.Length == 0 || 
+            (attackAnimations.Length > 0 && string.IsNullOrEmpty(attackAnimations[0])))
         {
             attackAnimations = new string[] { "Bow Draw", "Bow Release" };
         }
@@ -109,13 +113,14 @@ public class Bow : BaseWeapon
     
     void CheckForRelease()
     {
-        // Check if left mouse button is released
-        if (Input.GetMouseButtonUp(0))
+        // Check if left mouse button is released using new Input System
+        if (Mouse.current.leftButton.wasReleasedThisFrame)
         {
             ReleaseBow();
         }
+        
         // Also check if we've been drawing for too long without input
-        else if (Time.time - drawStartTime > maxDrawTime + 1f)
+        if (Time.time - drawStartTime > maxDrawTime + 1f)
         {
             ReleaseBow();
         }
@@ -228,6 +233,9 @@ public class Bow : BaseWeapon
         Vector3 spawnPosition = arrowSpawnPoint != null ? arrowSpawnPoint.position : transform.position;
         Vector3 shootDirection = playerCamera.transform.forward;
         
+        // Move spawn position slightly forward to avoid collision with player
+        spawnPosition += shootDirection * 0.5f;
+        
         // Calculate final speed based on draw power
         float finalSpeed = projectileSpeed * drawPower;
         
@@ -248,8 +256,8 @@ public class Bow : BaseWeapon
         // Setup simple physics - just forward velocity
         if (arrow.TryGetComponent<Rigidbody>(out Rigidbody arrowRb))
         {
-            // Arrow flies straight in the aim direction
-            arrowRb.linearVelocity = shootDirection * finalSpeed;
+            // Set velocity on next frame to avoid immediate collision issues
+            arrowRb.linearVelocity = Vector3.zero; // Start with no velocity
             arrowRb.useGravity = useGravity;
             if (useGravity)
             {
@@ -258,6 +266,9 @@ public class Bow : BaseWeapon
             
             // No rotation - arrow stays facing forward
             arrowRb.freezeRotation = true;
+            
+            // Apply velocity on next frame to avoid spawn collision issues
+            StartCoroutine(ApplyArrowVelocity(arrowRb, shootDirection * finalSpeed));
         }
     }
     
@@ -332,5 +343,42 @@ public class Bow : BaseWeapon
     public bool IsDrawing()
     {
         return isDrawing;
+    }
+    
+    // Coroutine to apply arrow velocity on next frame to prevent collision issues
+    private System.Collections.IEnumerator ApplyArrowVelocity(Rigidbody arrowRb, Vector3 velocity)
+    {
+        yield return new WaitForFixedUpdate(); // Wait one physics frame
+        if (arrowRb != null)
+        {
+            arrowRb.linearVelocity = velocity;
+        }
+    }
+    
+    // Debug method to check animation setup
+    [System.Diagnostics.Conditional("UNITY_EDITOR")]
+    public void DebugAnimationSetup()
+    {
+        Debug.Log($"Bow Animation Setup:");
+        Debug.Log($"Attack Animations Length: {attackAnimations?.Length ?? 0}");
+        if (attackAnimations != null)
+        {
+            for (int i = 0; i < attackAnimations.Length; i++)
+            {
+                Debug.Log($"Animation {i}: '{attackAnimations[i]}'");
+            }
+        }
+        
+        // Check if we have an animator
+        var animator = GetComponentInChildren<Animator>();
+        if (animator != null)
+        {
+            Debug.Log($"Animator found: {animator.name}");
+            Debug.Log($"Animator Controller: {animator.runtimeAnimatorController?.name ?? "None"}");
+        }
+        else
+        {
+            Debug.LogWarning("No Animator component found!");
+        }
     }
 }

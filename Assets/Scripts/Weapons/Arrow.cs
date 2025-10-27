@@ -26,11 +26,11 @@ public class Arrow : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         audioSource = GetComponent<AudioSource>();
         
-        // Setup arrow physics for simple forward flight
+        // Basic arrow setup - physics will be configured by the bow
         if (rb != null)
         {
-            rb.freezeRotation = true; // No rotation during flight
-            rb.useGravity = true; // Let gravity pull it down naturally
+            // Don't set physics properties here - let the bow handle it
+            // This prevents conflicts and camera shake issues
         }
         
         // Auto-destroy after lifetime

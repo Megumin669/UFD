@@ -802,14 +802,13 @@ MonoBehaviour:
   attackSounds: []
   hitSound: {fileID: 8300000, guid: 11245d3945c564b45a1bafad5ecb70e5, type: 3}
   attackAnimations:
-  - Attack 1
-  - Attack 2
+  - Bow1
   projectileSpeed: 30
   maxDrawAngle: 35
   arrowPrefab: {fileID: 1959729250425484, guid: 5187dfa4d8f19524e8bbf7c6894b7de7, type: 3}
-  arrowSpawnPoint: {fileID: 4745981596198912}
+  arrowSpawnPoint: {fileID: 1177650191935437499}
   useGravity: 1
-  gravityMultiplier: 0.5
+  gravityMultiplier: 1
   canChargeDraw: 1
   maxDrawTime: 2
   minDrawTime: 0.3
@@ -843,6 +842,7 @@ MonoBehaviour:
   trajectoryLine: {fileID: 0}
   trajectoryPoints: 30
   trajectoryTimeStep: 0.1
+  showDrawPowerInConsole: 0
 --- !u!1 &1793173729035202
 GameObject:
   m_ObjectHideFlags: 0
@@ -900,7 +900,7 @@ Transform:
   m_GameObject: {fileID: 1798074416387974}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 1, w: -6.123234e-17}
-  m_LocalPosition: {x: 9.3132255e-12, y: -0.01075402, z: 0}
+  m_LocalPosition: {x: -0, y: -0.0121, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 0.99999994}
   m_ConstrainProportionsScale: 0
   m_Children:
