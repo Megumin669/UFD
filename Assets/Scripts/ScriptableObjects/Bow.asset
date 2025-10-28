@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 058001c262e29b4489988054c5118e9c, type: 3}
+  m_Name: Bow
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponData
+  weaponName: Bow
+  weaponType: 1
+  weaponPrefab: {fileID: 1717406733745140, guid: d03c4353fda446d4f8df56d422578d64, type: 3}
+  weaponIcon: {fileID: 0}
+  attackDamage: 10
+  attackSpeed: 1
+  attackDelay: 0.4
+  attackDistance: 3
+  attackLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  attackSounds: []
+  hitSound: {fileID: 0}
+  swingSounds: []
+  comboSwingSounds: []
+  hitEffect: {fileID: 0}
+  hitEffectDuration: 10
+  attackAnimations:
+  - Attack 1
+  - Attack 2
+  arrowPrefab: {fileID: 1959729250425484, guid: 5187dfa4d8f19524e8bbf7c6894b7de7, type: 3}
+  projectileSpeed: 30
+  maxDrawAngle: 30
+  maxDrawTime: 2
+  minDrawTime: 0.3
+  useGravity: 1
+  gravityMultiplier: 1
+  canChargeDraw: 1
+  drawSound: {fileID: 0}
+  releaseSound: {fileID: 0}
+  projectilePrefab: {fileID: 0}
+  staffProjectileSpeed: 15
+  explosionRadius: 5
+  explosionDamage: 25
+  explosionLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  explosionEffect: {fileID: 0}
+  explosionEffectDuration: 5
+  castSound: {fileID: 0}
+  explosionSound: {fileID: 0}
+  slashRange: 1.5
+  canCombo: 1
+  comboWindow: 1
+  weaponSlotPosition: {x: 0.221, y: -0.248, z: 0.044}
+  weaponSlotRotation: {x: 346.09088, y: 4.6961026, z: 78.362206}
+  weaponSlotScale: {x: 1, y: 1, z: 1}
+  pickupPrefab: {fileID: 5368835201847174710, guid: 85309cab13aca5a42a5a12b6b74dc320, type: 3}
+  pickupRotationSpeed: 1
+  pickupBobSpeed: 1
+  pickupBobHeight: 0.2
+  description: A powerful weapon for combat.

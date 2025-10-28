@@ -1,0 +1,88 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 058001c262e29b4489988054c5118e9c, type: 3}
+  m_Name: Staff
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponData
+  weaponName: Staff
+  weaponType: 2
+  weaponPrefab: {fileID: 4444134633738837378, guid: 50ff862d71ac0904498b9b6f44f77563, type: 3}
+  weaponIcon: {fileID: 0}
+  attackDamage: 1
+  attackSpeed: 2
+  attackDelay: 0.1
+  attackDistance: 1
+  attackLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  damageableTags:
+  - Player
+  - Enemy
+  attackSounds: []
+  hitSound: {fileID: 0}
+  swingSounds: []
+  comboSwingSounds: []
+  hitEffect: {fileID: 0}
+  hitEffectDuration: 10
+  attackAnimations:
+  - Attack 1
+  - Attack 2
+  arrowPrefab: {fileID: 0}
+  projectileSpeed: 30
+  maxDrawAngle: 30
+  maxDrawTime: 2
+  minDrawTime: 0.3
+  useGravity: 1
+  gravityMultiplier: 1
+  canChargeDraw: 1
+  drawSound: {fileID: 0}
+  releaseSound: {fileID: 0}
+  arrowSpawnPointName: ArrowSpawnPoint
+  projectilePrefab: {fileID: 1959729250425484, guid: 85fc25715e366544bbf11fc22d402924, type: 3}
+  staffProjectileSpeed: 10
+  explosionRadius: 4
+  explosionDamage: 5
+  explosionLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  explosionEffect: {fileID: 191186, guid: 079954accd64b32419ec069129c81273, type: 3}
+  explosionEffectDuration: 2.5
+  castSound: {fileID: 0}
+  explosionSound: {fileID: 0}
+  projectileLifetime: 3
+  projectileSpawnPointName: ProjectileSpawnPoint
+  slashRange: 1.5
+  canCombo: 1
+  comboWindow: 1
+  weaponSlotPosition: {x: -0.052177824, y: 0.012969169, z: -0.0051753153}
+  weaponSlotRotation: {x: 304.62994, y: 2.1070411, z: 268.84167}
+  weaponSlotScale: {x: 0.46967006, y: 0.46967006, z: 0.4696701}
+  baseAttackSpeed: 1.98
+  baseAttackDelay: 0.193
+  comboCooldown: 0.2
+  bonusDamage: 0
+  criticalChance: 0.1
+  criticalMultiplier: 2
+  comboDamageMultiplier: 1.2
+  statusEffectChance: 0
+  lifestealPercentage: 0
+  canPenetrate: 0
+  penetrationCount: 1
+  staminaCost: 0
+  manaCost: 0
+  durabilityLoss: 0
+  maxUpgradeLevel: 10
+  currentUpgradeLevel: 0
+  pickupPrefab: {fileID: 7006070934380539339, guid: 73af88bdc001ba44a9f7f7cd852821e5, type: 3}
+  pickupRotationSpeed: 1
+  pickupBobSpeed: 1
+  pickupBobHeight: 0.2
+  description: A powerful weapon for combat.

@@ -78,6 +78,12 @@
         private Animator animator;
         private AudioSource audioSource;
         
+        // Health System
+        private Health healthComponent;
+        
+        // Stamina System
+        private Stamina staminaComponent;
+        
         // Animation States
         public const string IDLE = "Idle";
         public const string WALK = "Walk";
@@ -111,6 +117,8 @@
             cam = playerCamera.GetComponent<Camera>();
             animator = GetComponentInChildren<Animator>();
             audioSource = GetComponent<AudioSource>();
+            healthComponent = GetComponent<Health>();
+            staminaComponent = GetComponent<Stamina>();
             
             originalHeight = characterController.height;
             originalCameraParentHeight = cameraParent.localPosition.y;
@@ -286,7 +294,20 @@
             Vector2 movementInput = input.Movement.ReadValue<Vector2>();
             moveInput.x = movementInput.x;
             moveInput.y = movementInput.y;
-            isSprinting = canSprint && input.Sprint.IsPressed() && moveInput.y > 0.1f && isGrounded && !isCrouching && !isSliding;
+            // Check stamina availability for sprinting
+            bool hasStaminaForSprint = staminaComponent == null || staminaComponent.CanPerformAction;
+            isSprinting = canSprint && input.Sprint.IsPressed() && moveInput.y > 0.1f && isGrounded && !isCrouching && !isSliding && hasStaminaForSprint;
+            
+            // Consume stamina while sprinting
+            if (isSprinting && staminaComponent != null)
+            {
+                var staminaStats = staminaComponent.GetStaminaStats();
+                if (!staminaComponent.ConsumeStaminaOverTime(staminaStats.sprintCostPerSecond))
+                {
+                    // Stop sprinting if stamina is exhausted
+                    isSprinting = false;
+                }
+            }
 
             float currentSpeed = isCrouching ? crouchSpeed : (isSprinting ? sprintSpeed : walkSpeed);
             if (!isMove) currentSpeed = 0f;
@@ -352,6 +373,16 @@
         {
             if ((isGrounded || coyoteTimer > 0f) && canJump && !isSliding)
             {
+                // Check stamina and consume it for jumping
+                if (staminaComponent != null)
+                {
+                    var staminaStats = staminaComponent.GetStaminaStats();
+                    if (!staminaComponent.ConsumeStamina(staminaStats.jumpCost))
+                    {
+                        return; // Not enough stamina to jump
+                    }
+                }
+                
                 moveDirection.y = jumpSpeed;
             }
         }
@@ -367,23 +398,23 @@
         {
             if (currentWeapon == null) return;
             
-            // Special handling for bow (needs continuous input for drawing)
-            if (currentWeapon is Bow bow)
+            // Special handling for ranged weapons (needs continuous input for drawing)
+            if (currentWeapon is RangedWeapon rangedWeapon)
             {
                 // Start drawing when attack button is first pressed
                 if (input.Attack.WasPressedThisFrame())
                 {
                     Attack();
                 }
-                // Pass input state to bow for release detection
-                if (input.Attack.WasReleasedThisFrame() && bow.IsDrawing())
+                // Pass input state to ranged weapon for release detection
+                if (input.Attack.WasReleasedThisFrame() && rangedWeapon.IsDrawing())
                 {
-                    bow.ForceRelease();
+                    rangedWeapon.ForceRelease();
                 }
             }
             else
             {
-                // For all other weapons (like Staff), only respond to single clicks
+                // For all other weapons, only respond to single clicks
                 if (input.Attack.WasPressedThisFrame())
                 {
                     Attack();
@@ -435,12 +466,13 @@
         {
             if (animator == null) return;
             
-            // Check if we're using a bow and drawing
-            bool isBowDrawing = currentWeapon != null && currentWeapon is Bow bow && bow.IsDrawing();
+            // Check if we're using a ranged weapon and drawing
+            bool isRangedDrawing = currentWeapon != null && 
+                                 (currentWeapon is RangedWeapon rangedWeapon && rangedWeapon.IsDrawing());
             
-            // Don't override animations when attacking with non-bow weapons
-            // But allow movement animations when drawing a bow
-            if (!attacking || isBowDrawing)
+            // Don't override animations when attacking with non-ranged weapons
+            // But allow movement animations when drawing a ranged weapon
+            if (!attacking || isRangedDrawing)
             {
                 Vector3 horizontalVelocity = new Vector3(characterController.velocity.x, 0f, characterController.velocity.z);
                 if (horizontalVelocity.magnitude < 0.1f)
@@ -457,8 +489,19 @@
         // Weapon System Methods
         void InitializeWeaponSystem()
         {
-            // Find all available weapons in children
-            availableWeapons = GetComponentsInChildren<BaseWeapon>();
+            // Find all available weapons in WeaponSlot (or fallback to all children)
+            GameObject weaponSlot = FindWeaponSlot();
+            if (weaponSlot != null)
+            {
+                availableWeapons = weaponSlot.GetComponentsInChildren<BaseWeapon>();
+                Debug.Log($"Found {availableWeapons.Length} weapons in WeaponSlot");
+            }
+            else
+            {
+                // Fallback: Find all available weapons in player children
+                availableWeapons = GetComponentsInChildren<BaseWeapon>();
+                Debug.LogWarning("WeaponSlot not found, searching in all player children");
+            }
             
             // Set current weapon
             if (availableWeapons.Length > 0 && selectedWeaponIndex < availableWeapons.Length)
@@ -528,20 +571,194 @@
             return currentWeapon != null ? currentWeapon.WeaponName : "No Weapon";
         }
         
+        // Method for weapon pickups to replace current weapon
+        public void ReplaceCurrentWeapon(BaseWeapon newWeapon)
+        {
+            if (newWeapon == null) return;
+            
+            // Get current weapon index to maintain position in array
+            int currentIndex = selectedWeaponIndex;
+            
+            // Disable and unsubscribe from current weapon
+            if (currentWeapon != null)
+            {
+                currentWeapon.OnAnimationChange -= ChangeAnimationState;
+                currentWeapon.OnAttackStateChange -= SetAttackingState;
+                currentWeapon.gameObject.SetActive(false);
+            }
+            
+            // Update the weapon array
+            if (availableWeapons != null && currentIndex < availableWeapons.Length)
+            {
+                // Destroy old weapon if it exists (use Destroy instead of DestroyImmediate)
+                if (availableWeapons[currentIndex] != null)
+                {
+                    Destroy(availableWeapons[currentIndex].gameObject);
+                }
+                
+                availableWeapons[currentIndex] = newWeapon;
+            }
+            else
+            {
+                // Expand array if needed
+                System.Array.Resize(ref availableWeapons, currentIndex + 1);
+                availableWeapons[currentIndex] = newWeapon;
+            }
+            
+            // Set the new weapon as current
+            currentWeapon = newWeapon;
+            currentWeapon.gameObject.SetActive(true);
+            
+            // Subscribe to new weapon events
+            currentWeapon.OnAnimationChange += ChangeAnimationState;
+            currentWeapon.OnAttackStateChange += SetAttackingState;
+            
+            // Update weapon names array for editor display
+            UpdateWeaponList();
+            
+            Debug.Log($"Weapon replaced with: {newWeapon.WeaponName}");
+        }
+        
+        // Helper method to find WeaponSlot in player hierarchy
+        public GameObject FindWeaponSlot()
+        {
+            return FindWeaponSlotRecursive(transform);
+        }
+        
+        private GameObject FindWeaponSlotRecursive(Transform parent)
+        {
+            // Check if this object has the WeaponSlot tag
+            if (parent.CompareTag("WeaponSlot"))
+            {
+                return parent.gameObject;
+            }
+            
+            // Search through all children recursively
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                GameObject found = FindWeaponSlotRecursive(parent.GetChild(i));
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+            
+            return null;
+        }
+        
+        // Add weapon to inventory (for future multi-weapon system)
+        public void AddWeapon(BaseWeapon newWeapon)
+        {
+            if (newWeapon == null) return;
+            
+            // For now, this just replaces the current weapon
+            // In the future, this could add to a weapon inventory
+            ReplaceCurrentWeapon(newWeapon);
+        }
+        
         public void UpdateWeaponList()
         {
             if (Application.isPlaying) return;
             
-            availableWeapons = GetComponentsInChildren<BaseWeapon>(true);
+            // Find weapons in WeaponSlot first, fallback to all children
+            GameObject weaponSlot = FindWeaponSlot();
+            if (weaponSlot != null)
+            {
+                availableWeapons = weaponSlot.GetComponentsInChildren<BaseWeapon>(true);
+            }
+            else
+            {
+                availableWeapons = GetComponentsInChildren<BaseWeapon>(true);
+            }
+            
             weaponNames = new string[availableWeapons.Length];
             
             for (int i = 0; i < availableWeapons.Length; i++)
             {
-                weaponNames[i] = availableWeapons[i] != null ? availableWeapons[i].weaponName : "Unknown Weapon";
+                weaponNames[i] = availableWeapons[i] != null ? availableWeapons[i].WeaponName : "Unknown Weapon";
             }
             
             // Clamp selected index
             if (selectedWeaponIndex >= availableWeapons.Length)
                 selectedWeaponIndex = Mathf.Max(0, availableWeapons.Length - 1);
+        }
+        
+        // Health System Integration
+        public void TakeDamage(int damageAmount)
+        {
+            if (healthComponent != null)
+            {
+                healthComponent.TakeDamage(damageAmount);
+            }
+        }
+        
+        public void Heal(int healAmount)
+        {
+            if (healthComponent != null)
+            {
+                healthComponent.Heal(healAmount);
+            }
+        }
+        
+        public int GetCurrentHealth()
+        {
+            return healthComponent != null ? healthComponent.CurrentHealth : 0;
+        }
+        
+        public int GetMaxHealth()
+        {
+            return healthComponent != null ? healthComponent.MaxHealth : 100;
+        }
+        
+        public bool IsDead()
+        {
+            return healthComponent != null ? healthComponent.IsDead : false;
+        }
+        
+        public float GetHealthPercentage()
+        {
+            return healthComponent != null ? healthComponent.HealthPercentage : 0f;
+        }
+        
+        // Stamina System Integration
+        public void ConsumeStamina(int staminaAmount)
+        {
+            if (staminaComponent != null)
+            {
+                staminaComponent.ConsumeStamina(staminaAmount);
+            }
+        }
+        
+        public void RestoreStamina(int staminaAmount)
+        {
+            if (staminaComponent != null)
+            {
+                staminaComponent.RestoreStamina(staminaAmount);
+            }
+        }
+        
+        public int GetCurrentStamina()
+        {
+            return staminaComponent != null ? staminaComponent.CurrentStamina : 0;
+        }
+        
+        public int GetMaxStamina()
+        {
+            return staminaComponent != null ? staminaComponent.MaxStamina : 100;
+        }
+        
+        public bool IsExhausted()
+        {
+            return staminaComponent != null ? staminaComponent.IsExhausted : false;
+        }
+        
+        public float GetStaminaPercentage()
+        {
+            return staminaComponent != null ? staminaComponent.StaminaPercentage : 0f;
+        }
+        
+        public bool CanPerformAction()
+        {
+            return staminaComponent != null ? staminaComponent.CanPerformAction : true;
         }
     }

@@ -11,8 +11,8 @@ GameObject:
   - component: {fileID: 4145553361310044}
   - component: {fileID: 33732668498054106}
   - component: {fileID: 23590991179431624}
-  - component: {fileID: -845048999611723581}
   - component: {fileID: 8658378187865830879}
+  - component: {fileID: -8811271870101035433}
   m_Layer: 7
   m_Name: Sword_OH
   m_TagString: Untagged
@@ -28,13 +28,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1037715513984232}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0.008075354, y: 0.010168456, z: 0.0008122515, w: 0.99991536}
+  m_LocalPosition: {x: -0.006618042, y: -0.0052643917, z: 0.000108003616}
   m_LocalScale: {x: 1, y: 1, z: 0.68055}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -0.926, y: 1.165, z: 0.084}
 --- !u!33 &33732668498054106
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -91,36 +91,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &-845048999611723581
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1037715513984232}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5e1b8b5886e5e434f96786606a8c07c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Sword
-  weaponName: Sword1
-  attackDistance: 3
-  attackDelay: 0.4
-  attackSpeed: 1
-  attackDamage: 1
-  attackLayer:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  hitEffect: {fileID: 5334228485563152753, guid: 0134bdc80242c974b88f68d7bb298ed9, type: 3}
-  hitEffectDuration: 5
-  attackSounds: []
-  hitSound: {fileID: 8300000, guid: 11245d3945c564b45a1bafad5ecb70e5, type: 3}
-  attackAnimations:
-  - Attack 1
-  - Attack 2
-  slashRange: 1.5
-  canCombo: 1
-  comboWindow: 1
 --- !u!95 &8658378187865830879
 Animator:
   serializedVersion: 7
@@ -143,3 +113,31 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &-8811271870101035433
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1037715513984232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee563d46f52cfd745ab2c2303d8c86a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeWeapon
+  weaponName: Base Weapon
+  attackDistance: 3
+  attackDelay: 0.4
+  attackSpeed: 1
+  attackDamage: 1
+  attackLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  hitEffect: {fileID: 5334228485563152753, guid: 0134bdc80242c974b88f68d7bb298ed9, type: 3}
+  hitEffectDuration: 10
+  attackSounds: []
+  hitSound: {fileID: 8300000, guid: 11245d3945c564b45a1bafad5ecb70e5, type: 3}
+  attackAnimations:
+  - Attack 1
+  - Attack 2
+  weaponData: {fileID: 11400000, guid: 42069754d9cefbd43bc334cfb4358710, type: 2}

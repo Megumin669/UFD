@@ -1,34 +1,34 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class Bow : BaseWeapon
+public class RangedWeapon : BaseWeapon
 {
-    [Header("Bow Specific")]
-    [Range(10f, 100f)] public float projectileSpeed = 30f;
-    [Range(0f, 45f)] public float maxDrawAngle = 30f;
-    public GameObject arrowPrefab;
+    [Header("Ranged Weapon Settings")]
+    public WeaponData weaponData;
+    
+    [Header("Arrow Spawn Configuration")]
     public Transform arrowSpawnPoint;
-    public bool useGravity = true;
-    [Range(0f, 5f)] public float gravityMultiplier = 1f;
+    [Tooltip("REQUIRED: Point where arrows are spawned. Drag a Transform here to set the arrow spawn location.")]
     
-    [Header("Draw Mechanics")]
-    public bool canChargeDraw = true;
-    [Range(0.5f, 3f)] public float maxDrawTime = 2f;
-    [Range(0.1f, 2f)] public float minDrawTime = 0.3f;
-    public AnimationCurve drawPowerCurve = AnimationCurve.EaseInOut(0f, 0.3f, 1f, 1f);
+    [Header("Optional Visual Overrides")]
+    [SerializeField] private GameObject drawEffect;
+    [SerializeField] private bool showDrawPowerInConsole = false;
     
-    [Header("Bow Audio")]
-    public AudioClip drawSound;
-    public AudioClip releaseSound;
-    
-    [Header("Bow Effects")]
-    public GameObject drawEffect;
-    public LineRenderer trajectoryLine;
-    public int trajectoryPoints = 30;
-    public float trajectoryTimeStep = 0.1f;
-    
-    [Header("UI Feedback")]
-    public bool showDrawPowerInConsole = false;
+    // Private fields - values come from WeaponData
+    private float projectileSpeed = 30f;
+    private float maxDrawAngle = 30f;
+    private GameObject arrowPrefab;
+    private bool useGravity = true;
+    private float gravityMultiplier = 1f;
+    private bool canChargeDraw = true;
+    private float maxDrawTime = 2f;
+    private float minDrawTime = 0.3f;
+    private AnimationCurve drawPowerCurve = AnimationCurve.EaseInOut(0f, 0.3f, 1f, 1f);
+    private AudioClip drawSound;
+    private AudioClip releaseSound;
+    private LineRenderer trajectoryLine;
+    private int trajectoryPoints = 30;
+    private float trajectoryTimeStep = 0.1f;
     
     private bool isDrawing = false;
     private float drawStartTime;
@@ -39,21 +39,96 @@ public class Bow : BaseWeapon
     {
         base.Awake();
         
-        // Set default values for bow
-        if (weaponName == "Base Weapon") weaponName = "Bow";
-        
-        // Only set default animations if none are specified in Inspector
-        if (attackAnimations == null || attackAnimations.Length == 0 || 
-            (attackAnimations.Length > 0 && string.IsNullOrEmpty(attackAnimations[0])))
+        // Apply weapon data if available
+        if (weaponData != null)
         {
-            attackAnimations = new string[] { "Bow Draw", "Bow Release" };
+            ApplyWeaponData(weaponData);
         }
         
-        // Bows typically have longer range but different mechanics
-        attackDistance = Mathf.Max(attackDistance, 20f);
-        attackSpeed = Mathf.Max(attackSpeed, 1.5f); // Time between shots
-        
         // Initialize trajectory line if not assigned
+        SetupTrajectoryLine();
+    }
+    
+    void Start()
+    {
+        playerCamera = Camera.main;
+        if (playerCamera == null)
+            playerCamera = FindFirstObjectByType<Camera>();
+            
+        // Validate that arrow spawn point is assigned
+        if (arrowSpawnPoint == null)
+        {
+            Debug.LogError($"[{gameObject.name}] Arrow Spawn Point is not assigned! This weapon will not function properly.", this);
+        }
+    }
+    
+    void Update()
+    {
+        if (isDrawing)
+        {
+            UpdateDraw();
+            UpdateTrajectoryPreview();
+            CheckForRelease();
+        }
+    }
+    
+    // Method to apply WeaponData (called by pickup system or manually)
+    public void ApplyWeaponData(WeaponData data)
+    {
+        if (data == null) return;
+        
+        weaponData = data;
+        
+        // Apply base weapon data with upgrade calculations
+        ApplyUpgradeValues(data);
+        
+        // Apply basic properties
+        weaponName = data.weaponName;
+        attackLayer = data.attackLayer;
+        hitEffect = data.hitEffect;
+        hitEffectDuration = data.hitEffectDuration;
+        attackSounds = data.attackSounds;
+        hitSound = data.hitSound;
+        attackAnimations = data.attackAnimations;
+        
+        // Apply damage targeting settings
+        damageableTags = data.damageableTags;
+        
+        // Apply ranged-specific settings
+        arrowPrefab = data.arrowPrefab;
+        projectileSpeed = data.projectileSpeed;
+        maxDrawAngle = data.maxDrawAngle;
+        maxDrawTime = data.maxDrawTime;
+        minDrawTime = data.minDrawTime;
+        useGravity = data.useGravity;
+        gravityMultiplier = data.gravityMultiplier;
+        canChargeDraw = data.canChargeDraw;
+        drawSound = data.drawSound;
+        releaseSound = data.releaseSound;
+        
+        // Apply spawn point from WeaponData
+        if (!string.IsNullOrEmpty(data.arrowSpawnPointName))
+        {
+            Transform spawnPoint = transform.Find(data.arrowSpawnPointName);
+            if (spawnPoint != null)
+            {
+                arrowSpawnPoint = spawnPoint;
+            }
+            else
+            {
+                Debug.LogWarning($"[{gameObject.name}] Could not find arrow spawn point '{data.arrowSpawnPointName}' in weapon hierarchy.");
+            }
+        }
+        
+        // Set weapon-specific defaults
+        attackDistance = Mathf.Max(attackDistance, 20f);
+        attackSpeed = Mathf.Max(attackSpeed, 1.5f);
+        
+        // Note: Weapon positioning is handled by the pickup system using saved WeaponData positions
+    }
+    
+    void SetupTrajectoryLine()
+    {
         if (trajectoryLine == null)
         {
             trajectoryLine = GetComponent<LineRenderer>();
@@ -73,25 +148,6 @@ public class Bow : BaseWeapon
         }
     }
     
-    void Start()
-    {
-        playerCamera = Camera.main;
-        if (playerCamera == null)
-            playerCamera = FindFirstObjectByType<Camera>();
-    }
-    
-    void Update()
-    {
-        if (isDrawing)
-        {
-            UpdateDraw();
-            UpdateTrajectoryPreview();
-            
-            // Check for mouse button release to fire arrow
-            CheckForRelease();
-        }
-    }
-    
     public override bool CanAttack()
     {
         return base.CanAttack() && arrowPrefab != null;
@@ -103,8 +159,6 @@ public class Bow : BaseWeapon
         
         playerCamera = camera;
         
-        // This method is called when attack input is pressed
-        // For bow, we start drawing immediately
         if (!isDrawing)
         {
             StartDraw();
@@ -113,13 +167,11 @@ public class Bow : BaseWeapon
     
     void CheckForRelease()
     {
-        // Check if left mouse button is released using new Input System
         if (Mouse.current.leftButton.wasReleasedThisFrame)
         {
             ReleaseBow();
         }
         
-        // Also check if we've been drawing for too long without input
         if (Time.time - drawStartTime > maxDrawTime + 1f)
         {
             ReleaseBow();
@@ -130,7 +182,6 @@ public class Bow : BaseWeapon
     {
         if (!canChargeDraw)
         {
-            // Instant shot for non-charge bow
             FireArrow(1f);
             return;
         }
@@ -141,25 +192,21 @@ public class Bow : BaseWeapon
         attacking = true;
         OnAttackStateChange?.Invoke(true);
         
-        // Play draw sound
         if (audioSource != null && drawSound != null)
         {
             audioSource.PlayOneShot(drawSound);
         }
         
-        // Trigger draw animation
-        if (attackAnimations.Length > 0)
+        if (attackAnimations != null && attackAnimations.Length > 0)
         {
-            OnAnimationChange?.Invoke(attackAnimations[0]); // Draw animation
+            OnAnimationChange?.Invoke(attackAnimations[0]);
         }
         
-        // Enable trajectory preview
         if (trajectoryLine != null)
         {
             trajectoryLine.enabled = true;
         }
         
-        // Enable draw effect
         if (drawEffect != null)
         {
             drawEffect.SetActive(true);
@@ -172,13 +219,11 @@ public class Bow : BaseWeapon
         float normalizedDrawTime = Mathf.Clamp01(drawTime / maxDrawTime);
         currentDrawPower = drawPowerCurve.Evaluate(normalizedDrawTime);
         
-        // Optional debug output
         if (showDrawPowerInConsole)
         {
             Debug.Log($"Draw Power: {currentDrawPower:F2} | Draw Time: {drawTime:F2}s");
         }
         
-        // Auto-release if held too long
         if (drawTime >= maxDrawTime)
         {
             ReleaseBow();
@@ -190,39 +235,34 @@ public class Bow : BaseWeapon
         if (!isDrawing) return;
         
         float drawTime = Time.time - drawStartTime;
-        float finalPower = drawTime >= minDrawTime ? currentDrawPower : 0.3f; // Minimum power for quick shots
+        float finalPower = drawTime >= minDrawTime ? currentDrawPower : 0.3f;
         
         FireArrow(finalPower);
         
         isDrawing = false;
         currentDrawPower = 0f;
         
-        // Disable trajectory preview
         if (trajectoryLine != null)
         {
             trajectoryLine.enabled = false;
         }
         
-        // Disable draw effect
         if (drawEffect != null)
         {
             drawEffect.SetActive(false);
         }
         
-        // Play release sound
         if (audioSource != null && releaseSound != null)
         {
             audioSource.pitch = Random.Range(0.95f, 1.05f);
             audioSource.PlayOneShot(releaseSound);
         }
         
-        // Trigger release animation
-        if (attackAnimations.Length > 1)
+        if (attackAnimations != null && attackAnimations.Length > 1)
         {
-            OnAnimationChange?.Invoke(attackAnimations[1]); // Release animation
+            OnAnimationChange?.Invoke(attackAnimations[1]);
         }
         
-        // Schedule attack reset
         Invoke(nameof(ResetAttack), attackSpeed);
     }
     
@@ -233,41 +273,29 @@ public class Bow : BaseWeapon
         Vector3 spawnPosition = arrowSpawnPoint != null ? arrowSpawnPoint.position : transform.position;
         Vector3 shootDirection = playerCamera.transform.forward;
         
-        // Move spawn position slightly forward to avoid collision with player
         spawnPosition += shootDirection * 0.5f;
         
-        // Calculate final speed based on draw power
         float finalSpeed = projectileSpeed * drawPower;
-        
-        // Calculate damage based on draw power
         int finalDamage = Mathf.RoundToInt(attackDamage * drawPower);
         
-        // Spawn arrow facing the player's aim direction
         GameObject arrow = Instantiate(arrowPrefab, spawnPosition, Quaternion.LookRotation(shootDirection));
         
-        // Setup arrow component
         if (arrow.TryGetComponent<Arrow>(out Arrow arrowComponent))
         {
             arrowComponent.SetDamage(finalDamage);
             arrowComponent.SetShooter(gameObject);
-            // Note: Draw power will be handled by arrow mass and physics
+            arrowComponent.SetDamageableTags(damageableTags);
         }
         
-        // Setup simple physics - just forward velocity
         if (arrow.TryGetComponent<Rigidbody>(out Rigidbody arrowRb))
         {
-            // Set velocity on next frame to avoid immediate collision issues
-            arrowRb.linearVelocity = Vector3.zero; // Start with no velocity
+            arrowRb.linearVelocity = Vector3.zero;
             arrowRb.useGravity = useGravity;
             if (useGravity)
             {
-                arrowRb.linearDamping = 0.05f; // Light air resistance
+                arrowRb.linearDamping = 0.05f;
             }
-            
-            // No rotation - arrow stays facing forward
             arrowRb.freezeRotation = true;
-            
-            // Apply velocity on next frame to avoid spawn collision issues
             StartCoroutine(ApplyArrowVelocity(arrowRb, shootDirection * finalSpeed));
         }
     }
@@ -279,7 +307,6 @@ public class Bow : BaseWeapon
         Vector3 startPos = arrowSpawnPoint != null ? arrowSpawnPoint.position : transform.position;
         Vector3 velocity = playerCamera.transform.forward * (projectileSpeed * currentDrawPower);
         
-        // Change trajectory color based on draw power
         Color trajectoryColor = Color.Lerp(Color.red, Color.green, currentDrawPower);
         trajectoryLine.startColor = trajectoryColor;
         trajectoryLine.endColor = trajectoryColor;
@@ -298,7 +325,6 @@ public class Bow : BaseWeapon
             
             trajectoryLine.SetPosition(i, point);
             
-            // Stop trajectory if it hits something
             if (Physics.Raycast(startPos, (point - startPos).normalized, out RaycastHit hit, Vector3.Distance(startPos, point), attackLayer))
             {
                 trajectoryLine.positionCount = i + 1;
@@ -310,23 +336,19 @@ public class Bow : BaseWeapon
     
     protected override void PerformAttackRaycast()
     {
-        // Bow doesn't use raycast attacks - uses projectiles instead
-        // This method is overridden to prevent the base raycast behavior
+        // Ranged weapons don't use raycast attacks
     }
     
     protected override void OnHit(RaycastHit hit)
     {
-        // Bow hits are handled by the arrow projectile
-        // This method is overridden to prevent base behavior
+        // Hits are handled by projectiles
     }
     
     protected override void DealDamage(Actor target)
     {
-        // Damage is dealt by the arrow projectile
-        // This method is overridden to prevent base behavior
+        // Damage is dealt by projectiles
     }
     
-    // Public methods for external control
     public void ForceRelease()
     {
         if (isDrawing)
@@ -345,40 +367,54 @@ public class Bow : BaseWeapon
         return isDrawing;
     }
     
-    // Coroutine to apply arrow velocity on next frame to prevent collision issues
     private System.Collections.IEnumerator ApplyArrowVelocity(Rigidbody arrowRb, Vector3 velocity)
     {
-        yield return new WaitForFixedUpdate(); // Wait one physics frame
+        yield return new WaitForFixedUpdate();
         if (arrowRb != null)
         {
             arrowRb.linearVelocity = velocity;
         }
     }
     
-    // Debug method to check animation setup
-    [System.Diagnostics.Conditional("UNITY_EDITOR")]
-    public void DebugAnimationSetup()
+    // Editor validation
+    void OnValidate()
     {
-        Debug.Log($"Bow Animation Setup:");
-        Debug.Log($"Attack Animations Length: {attackAnimations?.Length ?? 0}");
-        if (attackAnimations != null)
+        // Provide warning if arrow spawn point is not assigned
+        if (arrowSpawnPoint == null)
         {
-            for (int i = 0; i < attackAnimations.Length; i++)
-            {
-                Debug.Log($"Animation {i}: '{attackAnimations[i]}'");
-            }
+            Debug.LogWarning($"[{gameObject.name}] Arrow Spawn Point is not assigned! Drag a Transform to the Arrow Spawn Point field.", this);
         }
-        
-        // Check if we have an animator
-        var animator = GetComponentInChildren<Animator>();
-        if (animator != null)
+    }
+    
+    // Debug visualization for arrow spawn point
+    void OnDrawGizmosSelected()
+    {
+        if (arrowSpawnPoint != null)
         {
-            Debug.Log($"Animator found: {animator.name}");
-            Debug.Log($"Animator Controller: {animator.runtimeAnimatorController?.name ?? "None"}");
+            // Draw arrow spawn point
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireSphere(arrowSpawnPoint.position, 0.1f);
+            Gizmos.DrawRay(arrowSpawnPoint.position, arrowSpawnPoint.forward * 0.5f);
+            
+            // Draw spawn direction indicator
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawLine(arrowSpawnPoint.position, arrowSpawnPoint.position + arrowSpawnPoint.forward * 1f);
         }
         else
         {
-            Debug.LogWarning("No Animator component found!");
+            // Show fallback position
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, 0.05f);
+        }
+        
+        // Show trajectory preview when drawing
+        if (isDrawing && trajectoryLine != null && trajectoryLine.enabled)
+        {
+            Gizmos.color = Color.cyan;
+            for (int i = 0; i < trajectoryLine.positionCount - 1; i++)
+            {
+                Gizmos.DrawLine(trajectoryLine.GetPosition(i), trajectoryLine.GetPosition(i + 1));
+            }
         }
     }
 }

@@ -729,7 +729,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4620178347958848}
   - component: {fileID: 95329518231908724}
-  - component: {fileID: -4179819180553068599}
+  - component: {fileID: 5941785694345247552}
   m_Layer: 7
   m_Name: Wooden Bow
   m_TagString: Untagged
@@ -752,7 +752,7 @@ Transform:
   m_Children:
   - {fileID: 4224820139693682}
   - {fileID: 4311502713970408}
-  - {fileID: 1177650191935437499}
+  - {fileID: 5377509571817905772}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &95329518231908724
@@ -764,7 +764,7 @@ Animator:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1717406733745140}
   m_Enabled: 1
-  m_Avatar: {fileID: 9000000, guid: 0be2ba322dd85494db39a44ee439af41, type: 3}
+  m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: 0e3ef47370b809c4989105a0b413222a, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
@@ -777,7 +777,7 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &-4179819180553068599
+--- !u!114 &5941785694345247552
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -786,62 +786,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 1717406733745140}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6fd1d67ca875f9e41987366fed96cdbd, type: 3}
+  m_Script: {fileID: 11500000, guid: f21734324a216da4390e6a00e6084b87, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Bow
-  weaponName: Bow1
+  m_EditorClassIdentifier: Assembly-CSharp::RangedWeapon
+  weaponName: Base Weapon
   attackDistance: 3
   attackDelay: 0.4
   attackSpeed: 1
   attackDamage: 1
   attackLayer:
     serializedVersion: 2
-    m_Bits: 4294967295
-  hitEffect: {fileID: 5334228485563152753, guid: 0134bdc80242c974b88f68d7bb298ed9, type: 3}
+    m_Bits: 0
+  hitEffect: {fileID: 0}
   hitEffectDuration: 10
   attackSounds: []
-  hitSound: {fileID: 8300000, guid: 11245d3945c564b45a1bafad5ecb70e5, type: 3}
+  hitSound: {fileID: 0}
   attackAnimations:
-  - Bow1
-  projectileSpeed: 30
-  maxDrawAngle: 35
-  arrowPrefab: {fileID: 1959729250425484, guid: 5187dfa4d8f19524e8bbf7c6894b7de7, type: 3}
-  arrowSpawnPoint: {fileID: 1177650191935437499}
-  useGravity: 1
-  gravityMultiplier: 1
-  canChargeDraw: 1
-  maxDrawTime: 2
-  minDrawTime: 0.3
-  drawPowerCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0.3
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  drawSound: {fileID: 0}
-  releaseSound: {fileID: 0}
+  - Attack 1
+  - Attack 2
+  weaponData: {fileID: 11400000, guid: e0e6e5b87d8d8424fa6d2e869e99e2b9, type: 2}
+  arrowSpawnPoint: {fileID: 5377509571817905772}
   drawEffect: {fileID: 0}
-  trajectoryLine: {fileID: 0}
-  trajectoryPoints: 30
-  trajectoryTimeStep: 0.1
   showDrawPowerInConsole: 0
 --- !u!1 &1793173729035202
 GameObject:
@@ -1130,7 +1095,7 @@ Transform:
   - {fileID: 4162163098961802}
   m_Father: {fileID: 4620178347958848}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &6909747407577200041
+--- !u!1 &5641799171615320309
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1138,26 +1103,26 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1177650191935437499}
+  - component: {fileID: 5377509571817905772}
   m_Layer: 7
-  m_Name: ArrowPoint
+  m_Name: ArrowSpawnPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1177650191935437499
+--- !u!4 &5377509571817905772
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6909747407577200041}
+  m_GameObject: {fileID: 5641799171615320309}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.064, y: 0.388, z: 0.162}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0.074, y: 0.363, z: 0.002}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4620178347958848}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}

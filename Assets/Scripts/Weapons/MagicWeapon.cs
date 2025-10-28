@@ -1,22 +1,25 @@
 using UnityEngine;
 
-public class Staff : BaseWeapon
+public class MagicWeapon : BaseWeapon
 {
-    [Header("Staff Specific")]
-    [Range(1f, 50f)] public float projectileSpeed = 15f;
-    public GameObject projectilePrefab;
+    [Header("Magic Weapon Settings")]
+    public WeaponData weaponData;
+    
+    [Header("Projectile Spawn Configuration")]
     public Transform projectileSpawnPoint;
+    [Tooltip("REQUIRED: Point where magic projectiles are spawned. Drag a Transform here to set the projectile spawn location.")]
     
-    [Header("AoE Settings")]
-    [Range(1f, 20f)] public float explosionRadius = 5f;
-    [Range(1, 100)] public int explosionDamage = 25;
-    public LayerMask explosionLayer;
-    
-    [Header("Staff Effects")]
-    public GameObject explosionEffect;
-    public float explosionEffectDuration = 5f;
-    public AudioClip castSound;
-    public AudioClip explosionSound;
+    // Private fields - values come from WeaponData
+    private float projectileSpeed = 15f;
+    private GameObject projectilePrefab;
+    private float explosionRadius = 5f;
+    private int explosionDamage = 25;
+    private LayerMask explosionLayer;
+    private GameObject explosionEffect;
+    private float explosionEffectDuration = 5f;
+    private AudioClip castSound;
+    private AudioClip explosionSound;
+    private float projectileLifetime = 3f;
     
     private Camera playerCamera;
     
@@ -24,16 +27,11 @@ public class Staff : BaseWeapon
     {
         base.Awake();
         
-        // Set default values for staff
-        if (weaponName == "Base Weapon") weaponName = "Staff";
-        if (attackAnimations.Length == 0) 
+        // Apply weapon data if available
+        if (weaponData != null)
         {
-            attackAnimations = new string[] { "Staff Cast" };
+            ApplyWeaponData(weaponData);
         }
-        
-        // Staffs typically have different mechanics than melee weapons
-        attackDistance = Mathf.Max(attackDistance, 30f); // Longer range for projectiles
-        attackSpeed = Mathf.Max(attackSpeed, 1.0f); // Casting time
     }
     
     void Start()
@@ -41,6 +39,67 @@ public class Staff : BaseWeapon
         playerCamera = Camera.main;
         if (playerCamera == null)
             playerCamera = FindFirstObjectByType<Camera>();
+            
+        // Validate that projectile spawn point is assigned
+        if (projectileSpawnPoint == null)
+        {
+            Debug.LogError($"[{gameObject.name}] Projectile Spawn Point is not assigned! This weapon will not function properly.", this);
+        }
+    }
+    
+    // Method to apply WeaponData (called by pickup system or manually)
+    public void ApplyWeaponData(WeaponData data)
+    {
+        if (data == null) return;
+        
+        weaponData = data;
+        
+        // Apply base weapon data with upgrade calculations
+        ApplyUpgradeValues(data);
+        
+        // Apply basic properties
+        weaponName = data.weaponName;
+        attackLayer = data.attackLayer;
+        hitEffect = data.hitEffect;
+        hitEffectDuration = data.hitEffectDuration;
+        attackSounds = data.attackSounds;
+        hitSound = data.hitSound;
+        attackAnimations = data.attackAnimations;
+        
+        // Apply damage targeting settings
+        damageableTags = data.damageableTags;
+        
+        // Apply magic-specific settings
+        projectilePrefab = data.projectilePrefab;
+        projectileSpeed = data.staffProjectileSpeed;
+        explosionRadius = data.explosionRadius;
+        explosionDamage = data.explosionDamage;
+        explosionLayer = data.explosionLayer;
+        explosionEffect = data.explosionEffect;
+        explosionEffectDuration = data.explosionEffectDuration;
+        castSound = data.castSound;
+        explosionSound = data.explosionSound;
+        projectileLifetime = data.projectileLifetime;
+        
+        // Apply spawn point from WeaponData
+        if (!string.IsNullOrEmpty(data.projectileSpawnPointName))
+        {
+            Transform spawnPoint = transform.Find(data.projectileSpawnPointName);
+            if (spawnPoint != null)
+            {
+                projectileSpawnPoint = spawnPoint;
+            }
+            else
+            {
+                Debug.LogWarning($"[{gameObject.name}] Could not find projectile spawn point '{data.projectileSpawnPointName}' in weapon hierarchy.");
+            }
+        }
+        
+        // Set magic weapon defaults
+        attackDistance = Mathf.Max(attackDistance, 30f);
+        attackSpeed = Mathf.Max(attackSpeed, 1.0f);
+        
+        // Note: Weapon positioning is handled by the pickup system using saved WeaponData positions
     }
     
     public override bool CanAttack()
@@ -66,12 +125,12 @@ public class Staff : BaseWeapon
         }
         
         // Trigger cast animation
-        if (attackAnimations.Length > 0)
+        if (attackAnimations != null && attackAnimations.Length > 0)
         {
             OnAnimationChange?.Invoke(attackAnimations[0]);
         }
         
-        // Fire projectile immediately (no delay like bow)
+        // Fire projectile immediately
         FireProjectile();
         
         // Schedule attack reset
@@ -94,10 +153,10 @@ public class Staff : BaseWeapon
         // Setup projectile component
         if (projectile.TryGetComponent<StaffProjectile>(out StaffProjectile projectileComponent))
         {
-            projectileComponent.SetStaff(this);
+            projectileComponent.SetMagicWeapon(this);
             projectileComponent.SetExplosionData(explosionRadius, explosionDamage, explosionLayer);
             projectileComponent.SetEffects(explosionEffect, explosionEffectDuration, explosionSound);
-            projectileComponent.SetLifetime(1.5f); // Set projectile lifetime to 1.5 seconds
+            projectileComponent.SetLifetime(projectileLifetime); // Set projectile lifetime from WeaponData
         }
         
         // Setup projectile physics
@@ -134,16 +193,26 @@ public class Staff : BaseWeapon
         
         foreach (Collider hitCollider in hitColliders)
         {
+            // Check if target can be damaged based on tags
+            if (!CanDamageTarget(hitCollider.gameObject))
+                continue;
+            
             // Calculate distance for damage falloff (optional)
             float distance = Vector3.Distance(explosionPosition, hitCollider.transform.position);
             float damageMultiplier = 1f - (distance / explosionRadius); // Linear falloff
             damageMultiplier = Mathf.Clamp01(damageMultiplier);
             
-            // Deal damage to actors
+            int finalDamage = Mathf.RoundToInt(explosionDamage * damageMultiplier);
+            
+            // Deal damage to actors (legacy system)
             if (hitCollider.TryGetComponent<Actor>(out Actor actor))
             {
-                int finalDamage = Mathf.RoundToInt(explosionDamage * damageMultiplier);
                 actor.TakeDamage(finalDamage);
+            }
+            // Deal damage to Health component (new system)
+            else if (hitCollider.TryGetComponent<Health>(out Health health))
+            {
+                health.TakeDamage(finalDamage);
             }
         }
         
@@ -159,32 +228,6 @@ public class Staff : BaseWeapon
         {
             audioSource.pitch = Random.Range(0.9f, 1.1f);
             audioSource.PlayOneShot(explosionSound);
-        }
-    }
-    
-    // Override base weapon methods since staff uses projectiles
-    protected override void PerformAttackRaycast()
-    {
-        // Staff doesn't use raycast attacks - uses projectiles instead
-    }
-    
-    protected override void OnHit(RaycastHit hit)
-    {
-        // Staff hits are handled by projectile explosions
-    }
-    
-    protected override void DealDamage(Actor target)
-    {
-        // Damage is dealt by projectile explosions
-    }
-    
-    // Debug method to visualize explosion radius
-    void OnDrawGizmosSelected()
-    {
-        if (projectileSpawnPoint != null)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(projectileSpawnPoint.position, explosionRadius);
         }
     }
     
@@ -244,6 +287,68 @@ public class Staff : BaseWeapon
             
             timer += Time.deltaTime;
             yield return null;
+        }
+    }
+    
+    // Override base weapon methods since magic weapons use projectiles
+    protected override void PerformAttackRaycast()
+    {
+        // Magic weapons don't use raycast attacks - uses projectiles instead
+    }
+    
+    protected override void OnHit(RaycastHit hit)
+    {
+        // Magic weapon hits are handled by projectile explosions
+    }
+    
+    protected override void DealDamage(Actor target)
+    {
+        // Damage is dealt by projectile explosions
+    }
+    
+    // Editor validation
+    void OnValidate()
+    {
+        // Provide warning if projectile spawn point is not assigned
+        if (projectileSpawnPoint == null)
+        {
+            Debug.LogWarning($"[{gameObject.name}] Projectile Spawn Point is not assigned! Drag a Transform to the Projectile Spawn Point field.", this);
+        }
+    }
+    
+    // Debug visualization for projectile spawn point and explosion radius
+    void OnDrawGizmosSelected()
+    {
+        if (projectileSpawnPoint != null)
+        {
+            // Draw projectile spawn point
+            Gizmos.color = Color.magenta;
+            Gizmos.DrawWireSphere(projectileSpawnPoint.position, 0.1f);
+            Gizmos.DrawRay(projectileSpawnPoint.position, projectileSpawnPoint.forward * 0.5f);
+            
+            // Draw spawn direction indicator
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawLine(projectileSpawnPoint.position, projectileSpawnPoint.position + projectileSpawnPoint.forward * 2f);
+            
+            // Draw explosion radius preview
+            Gizmos.color = Color.red;
+            Vector3 previewPos = projectileSpawnPoint.position + projectileSpawnPoint.forward * 5f; // Show explosion at sample distance
+            Gizmos.DrawWireSphere(previewPos, explosionRadius);
+            
+            // Draw trajectory line
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawLine(projectileSpawnPoint.position, previewPos);
+        }
+        else
+        {
+            // Show fallback position
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, 0.05f);
+            
+            // Show explosion radius at fallback position
+            Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
+            Vector3 previewPos = transform.position + transform.forward * 5f;
+            Gizmos.DrawWireSphere(previewPos, explosionRadius);
         }
     }
 }

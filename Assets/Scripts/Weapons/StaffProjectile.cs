@@ -6,7 +6,7 @@ public class StaffProjectile : MonoBehaviour
     public float lifeTime = 10f;
     public LayerMask collisionLayers = -1;
     
-    private Staff parentStaff;
+    private MagicWeapon parentMagicWeapon;
     private Rigidbody rb;
     private bool hasExploded = false;
     
@@ -58,7 +58,11 @@ public class StaffProjectile : MonoBehaviour
         if (((1 << hitCollider.gameObject.layer) & collisionLayers) == 0) return;
         
         // Don't explode on the caster
-        if (parentStaff != null && hitCollider.gameObject == parentStaff.gameObject) return;
+        GameObject casterObject = null;
+        if (parentMagicWeapon != null) casterObject = parentMagicWeapon.gameObject;
+        if (parentMagicWeapon != null) casterObject = parentMagicWeapon.gameObject;
+        
+        if (casterObject != null && hitCollider.gameObject == casterObject) return;
         
         hasExploded = true;
         
@@ -73,18 +77,22 @@ public class StaffProjectile : MonoBehaviour
         }
         
         // Trigger explosion
-        if (parentStaff != null)
+        if (parentMagicWeapon != null)
         {
-            parentStaff.OnProjectileExplode(transform.position);
+            parentMagicWeapon.OnProjectileExplode(transform.position);
+        }
+        else if (parentMagicWeapon != null)
+        {
+            parentMagicWeapon.OnProjectileExplode(transform.position);
         }
         
         // Destroy projectile
         Destroy(gameObject, 0.1f);
     }
     
-    public void SetStaff(Staff staff)
+    public void SetMagicWeapon(MagicWeapon magicWeapon)
     {
-        parentStaff = staff;
+        parentMagicWeapon = magicWeapon;
     }
     
     public void SetExplosionData(float radius, int damage, LayerMask layer)

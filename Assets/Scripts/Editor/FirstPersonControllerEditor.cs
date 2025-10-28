@@ -20,7 +20,7 @@ public class FirstPersonControllerEditor : Editor
             for (int i = 0; i < controller.availableWeapons.Length; i++)
             {
                 weaponNames[i] = controller.availableWeapons[i] != null ? 
-                    controller.availableWeapons[i].weaponName : "Unknown Weapon";
+                    controller.availableWeapons[i].WeaponName : "Unknown Weapon";
             }
             
             int newSelectedIndex = EditorGUILayout.Popup("Selected Weapon", controller.selectedWeaponIndex, weaponNames);

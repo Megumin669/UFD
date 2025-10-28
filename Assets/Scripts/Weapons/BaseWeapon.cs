@@ -2,22 +2,36 @@ using UnityEngine;
 
 public abstract class BaseWeapon : MonoBehaviour
 {
-    [Header("Weapon Settings")]
-    public string weaponName = "Base Weapon";
-    public float attackDistance = 3f;
-    public float attackDelay = 0.4f;
-    public float attackSpeed = 1f;
-    public int attackDamage = 1;
-    public LayerMask attackLayer;
+    // All weapon settings now come from WeaponData - no duplicates needed
     
-    [Header("Effects")]
-    public GameObject hitEffect;
-    public float hitEffectDuration = 10f;
-    public AudioClip[] attackSounds;
-    public AudioClip hitSound;
+    // Runtime values loaded from WeaponData (final calculated values)
+    protected string weaponName = "Base Weapon";
+    protected float attackDistance = 3f;
+    protected float attackDelay = 0.4f;
+    protected float attackSpeed = 1f;
+    protected int attackDamage = 1;
+    protected LayerMask attackLayer;
+    protected GameObject hitEffect;
+    protected float hitEffectDuration = 10f;
+    protected AudioClip[] attackSounds;
+    protected AudioClip hitSound;
+    protected string[] attackAnimations = { "Attack 1", "Attack 2" };
     
-    [Header("Animation")]
-    public string[] attackAnimations = { "Attack 1", "Attack 2" };
+    // Damage targeting system
+    protected string[] damageableTags = { "Player" };
+    
+    // Stamina system integration
+    protected Stamina staminaComponent;
+    protected int staminaCost = 10; // Default stamina cost for attacks
+    
+    // Upgrade system values
+    protected float criticalChance = 0f;
+    protected float criticalMultiplier = 2f;
+    protected float comboDamageMultiplier = 1f;
+    protected float statusEffectChance = 0f;
+    protected float lifestealPercentage = 0f;
+    protected bool canPenetrate = false;
+    protected int penetrationCount = 1;
     
     protected AudioSource audioSource;
     protected bool attacking = false;
@@ -35,16 +49,44 @@ public abstract class BaseWeapon : MonoBehaviour
         {
             audioSource = gameObject.AddComponent<AudioSource>();
         }
+        
+        // Try to find stamina component in parent hierarchy (player)
+        staminaComponent = GetComponentInParent<Stamina>();
+        if (staminaComponent == null)
+        {
+            // Look for stamina component in same GameObject
+            staminaComponent = GetComponent<Stamina>();
+        }
     }
     
     public virtual bool CanAttack()
     {
-        return readyToAttack && !attacking;
+        // Check basic attack readiness
+        if (!readyToAttack || attacking)
+            return false;
+        
+        // Check stamina availability if stamina system is present
+        if (staminaComponent != null && staminaCost > 0)
+        {
+            return staminaComponent.HasSufficientStamina(staminaCost);
+        }
+        
+        return true;
     }
     
     public virtual void Attack(Camera playerCamera)
     {
         if (!CanAttack()) return;
+        
+        // Consume stamina if stamina system is present
+        if (staminaComponent != null && staminaCost > 0)
+        {
+            if (!staminaComponent.ConsumeStamina(staminaCost))
+            {
+                // Failed to consume stamina - attack cancelled
+                return;
+            }
+        }
         
         readyToAttack = false;
         attacking = true;
@@ -103,10 +145,17 @@ public abstract class BaseWeapon : MonoBehaviour
         // Play hit sound
         PlayHitSound();
         
-        // Deal damage
-        if (hit.transform.TryGetComponent<Actor>(out Actor actor))
+        // Deal damage - check tags first, then fallback to Actor component
+        if (CanDamageTarget(hit.transform.gameObject))
         {
-            DealDamage(actor);
+            if (hit.transform.TryGetComponent<Actor>(out Actor actor))
+            {
+                DealDamage(actor);
+            }
+            else if (hit.transform.TryGetComponent<Health>(out Health health))
+            {
+                DealDamageToHealth(health);
+            }
         }
     }
     
@@ -130,7 +179,120 @@ public abstract class BaseWeapon : MonoBehaviour
     
     protected virtual void DealDamage(Actor target)
     {
-        target.TakeDamage(attackDamage);
+        int finalDamage = CalculateFinalDamage();
+        target.TakeDamage(finalDamage);
+        
+        // Handle lifesteal
+        if (lifestealPercentage > 0f)
+        {
+            HandleLifesteal(finalDamage);
+        }
+    }
+    
+    // Deal damage to Health component
+    protected virtual void DealDamageToHealth(Health healthComponent)
+    {
+        int finalDamage = CalculateFinalDamage();
+        healthComponent.TakeDamage(finalDamage);
+        
+        // Handle lifesteal
+        if (lifestealPercentage > 0f)
+        {
+            HandleLifesteal(finalDamage);
+        }
+    }
+    
+    // Check if target can be damaged based on tags
+    protected virtual bool CanDamageTarget(GameObject target)
+    {
+        // If no damage tags specified, allow damage to any object with Actor or Health component
+        if (damageableTags == null || damageableTags.Length == 0)
+        {
+            return target.TryGetComponent<Actor>(out _) || target.TryGetComponent<Health>(out _);
+        }
+        
+        // Check if target has any of the specified damage tags (with safe tag checking)
+        foreach (string damageTag in damageableTags)
+        {
+            if (!string.IsNullOrEmpty(damageTag) && HasTag(target, damageTag))
+            {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    // Safe tag checking that won't crash if tag doesn't exist
+    private bool HasTag(GameObject target, string tagName)
+    {
+        try
+        {
+            return target.CompareTag(tagName);
+        }
+        catch (UnityException)
+        {
+            // Tag doesn't exist in Unity's tag list - check manually
+            return target.tag.Equals(tagName, System.StringComparison.OrdinalIgnoreCase);
+        }
+    }
+    
+    // Calculate final damage with all modifiers
+    protected virtual int CalculateFinalDamage()
+    {
+        int baseDamage = attackDamage;
+        
+        // Apply combo damage multiplier
+        if (attackCount > 1)
+        {
+            baseDamage = Mathf.RoundToInt(baseDamage * comboDamageMultiplier);
+        }
+        
+        // Apply critical hit
+        if (Random.Range(0f, 1f) < criticalChance)
+        {
+            baseDamage = Mathf.RoundToInt(baseDamage * criticalMultiplier);
+        }
+        
+        return baseDamage;
+    }
+    
+    // Handle lifesteal effect
+    protected virtual void HandleLifesteal(int damageDealt)
+    {
+        if (lifestealPercentage > 0f)
+        {
+            int healAmount = Mathf.RoundToInt(damageDealt * lifestealPercentage);
+            // TODO: Implement healing system for player
+            Debug.Log($"Lifesteal: Healed {healAmount} HP");
+        }
+    }
+    
+    // Apply WeaponData values including upgrades (to be called by child classes)
+    protected virtual void ApplyUpgradeValues(WeaponData data)
+    {
+        if (data == null) return;
+        
+        // Calculate final values with upgrade bonuses
+        attackDamage = data.attackDamage + data.bonusDamage;
+        attackDistance = data.attackDistance;
+        attackSpeed = Mathf.Max(0.1f, data.baseAttackSpeed);
+        attackDelay = Mathf.Max(0.05f, data.baseAttackDelay);
+        
+        // Apply upgrade modifiers
+        criticalChance = data.criticalChance;
+        criticalMultiplier = data.criticalMultiplier;
+        comboDamageMultiplier = data.comboDamageMultiplier;
+        statusEffectChance = data.statusEffectChance;
+        lifestealPercentage = data.lifestealPercentage;
+        canPenetrate = data.canPenetrate;
+        penetrationCount = data.penetrationCount;
+        
+        // Apply damage targeting settings
+        damageableTags = data.damageableTags;
+        
+        // Apply stamina cost (use weapon-specific cost from WeaponData)
+        staminaCost = Mathf.RoundToInt(data.staminaCost);
     }
     
     protected virtual void ResetAttack()
@@ -143,4 +305,5 @@ public abstract class BaseWeapon : MonoBehaviour
     // Public getters for controller
     public bool IsAttacking => attacking;
     public string WeaponName => weaponName;
+    public string GetWeaponName() => weaponName;
 }

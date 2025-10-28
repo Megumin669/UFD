@@ -8,6 +8,10 @@ public class Arrow : MonoBehaviour
     public bool stickToSurfaces = true;
     public LayerMask targetLayers = -1;
     
+    [Header("Damage Target Configuration")]
+    [Tooltip("Objects with these tags will receive damage from this arrow. Leave empty to damage all objects with Actor component.")]
+    public string[] damageableTags = { "Player" };
+    
     [Header("Flight Settings")]
     public float gravityScale = 1f;
     
@@ -75,13 +79,18 @@ public class Arrow : MonoBehaviour
         // Don't hit the shooter
         if (hitCollider.gameObject == shooter) return;
         
-        // Check if we should damage this target
-        if (((1 << hitCollider.gameObject.layer) & targetLayers) != 0)
+        // Check if we should damage this target - check tags first, then layer
+        if (CanDamageTarget(hitCollider.gameObject) && ((1 << hitCollider.gameObject.layer) & targetLayers) != 0)
         {
-            // Try to deal damage
+            // Try to deal damage to Actor (legacy system)
             if (hitCollider.TryGetComponent<Actor>(out Actor actor))
             {
                 actor.TakeDamage(damage);
+            }
+            // Try to deal damage to Health component (new system)
+            else if (hitCollider.TryGetComponent<Health>(out Health health))
+            {
+                health.TakeDamage(damage);
             }
         }
         
@@ -150,6 +159,46 @@ public class Arrow : MonoBehaviour
         if (rb != null)
         {
             rb.mass = 1f / Mathf.Max(power, 0.1f); // Lower mass = less gravity effect
+        }
+    }
+    
+    public void SetDamageableTags(string[] tags)
+    {
+        damageableTags = tags;
+    }
+    
+    // Check if target can be damaged based on tags
+    private bool CanDamageTarget(GameObject target)
+    {
+        // If no damage tags specified, allow damage to any object with Actor or Health component
+        if (damageableTags == null || damageableTags.Length == 0)
+        {
+            return target.TryGetComponent<Actor>(out _) || target.TryGetComponent<Health>(out _);
+        }
+        
+        // Check if target has any of the specified damage tags (with safe tag checking)
+        foreach (string damageTag in damageableTags)
+        {
+            if (!string.IsNullOrEmpty(damageTag) && HasTag(target, damageTag))
+            {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    // Safe tag checking that won't crash if tag doesn't exist
+    private bool HasTag(GameObject target, string tagName)
+    {
+        try
+        {
+            return target.CompareTag(tagName);
+        }
+        catch (UnityException)
+        {
+            // Tag doesn't exist in Unity's tag list - check manually
+            return target.tag.Equals(tagName, System.StringComparison.OrdinalIgnoreCase);
         }
     }
 }
