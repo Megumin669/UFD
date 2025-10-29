@@ -9,7 +9,7 @@ public class Arrow : MonoBehaviour
     public LayerMask targetLayers = -1;
     
     [Header("Damage Target Configuration")]
-    [Tooltip("Objects with these tags will receive damage from this arrow. Leave empty to damage all objects with Actor component.")]
+    [Tooltip("Objects with these tags will receive damage from this arrow. Leave empty to damage all objects with Health or Actor components.")]
     public string[] damageableTags = { "Player" };
     
     [Header("Flight Settings")]
@@ -82,15 +82,15 @@ public class Arrow : MonoBehaviour
         // Check if we should damage this target - check tags first, then layer
         if (CanDamageTarget(hitCollider.gameObject) && ((1 << hitCollider.gameObject.layer) & targetLayers) != 0)
         {
-            // Try to deal damage to Actor (legacy system)
-            if (hitCollider.TryGetComponent<Actor>(out Actor actor))
-            {
-                actor.TakeDamage(damage);
-            }
-            // Try to deal damage to Health component (new system)
-            else if (hitCollider.TryGetComponent<Health>(out Health health))
+            // Try to deal damage to Health component (current system)
+            if (hitCollider.TryGetComponent<Health>(out Health health))
             {
                 health.TakeDamage(damage);
+            }
+            // Try to deal damage to Actor component (legacy fallback - will be removed)
+            else if (hitCollider.TryGetComponent<Actor>(out Actor actor))
+            {
+                actor.TakeDamage(damage);
             }
         }
         

@@ -7,9 +7,13 @@ Welcome to the EFD (Enhanced First-person Defense) game system documentation. Th
 ### Core Systems
 - [Health System](./HealthSystem.md) - Character health, damage, healing, and regeneration
 - [Stamina System](./StaminaSystem.md) - Energy management for attacks, sprinting, and actions
+- [Enemy System](./EnemySystem.md) - ScriptableObject-based enemy AI and configuration
 - [Weapon System](./WeaponSystem.md) - Complete weapon framework with upgrades
 - [Damage Tags System](./DamageTagsSystem.md) - Configurable damage targeting system
 - [Player Controller](./PlayerController.md) - First-person movement and interaction
+
+### Migration Guides
+- [Actor → Enemy Migration](./ActorMigrationGuide.md) - Transition from old Actor system
 
 ### Weapon Types
 - [Melee Weapons](./MeleeWeapons.md) - Swords, axes, and close combat weapons

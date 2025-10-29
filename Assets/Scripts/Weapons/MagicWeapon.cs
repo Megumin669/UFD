@@ -14,6 +14,8 @@ public class MagicWeapon : BaseWeapon
     private GameObject projectilePrefab;
     private float explosionRadius = 5f;
     private int explosionDamage = 25;
+    private bool useDamageFalloff = true;
+    private float minimumDamageMultiplier = 0.5f;
     private LayerMask explosionLayer;
     private GameObject explosionEffect;
     private float explosionEffectDuration = 5f;
@@ -74,6 +76,8 @@ public class MagicWeapon : BaseWeapon
         projectileSpeed = data.staffProjectileSpeed;
         explosionRadius = data.explosionRadius;
         explosionDamage = data.explosionDamage;
+        useDamageFalloff = data.useDamageFalloff;
+        minimumDamageMultiplier = data.minimumDamageMultiplier;
         explosionLayer = data.explosionLayer;
         explosionEffect = data.explosionEffect;
         explosionEffectDuration = data.explosionEffectDuration;
@@ -110,6 +114,16 @@ public class MagicWeapon : BaseWeapon
     public override void Attack(Camera camera)
     {
         if (!CanAttack()) return;
+        
+        // Consume stamina if stamina system is present
+        if (staminaComponent != null && staminaCost > 0)
+        {
+            if (!staminaComponent.ConsumeStamina(staminaCost))
+            {
+                // Failed to consume stamina - attack cancelled
+                return;
+            }
+        }
         
         playerCamera = camera;
         
@@ -197,22 +211,39 @@ public class MagicWeapon : BaseWeapon
             if (!CanDamageTarget(hitCollider.gameObject))
                 continue;
             
-            // Calculate distance for damage falloff (optional)
-            float distance = Vector3.Distance(explosionPosition, hitCollider.transform.position);
-            float damageMultiplier = 1f - (distance / explosionRadius); // Linear falloff
-            damageMultiplier = Mathf.Clamp01(damageMultiplier);
+            float damageMultiplier = 1f;
+            
+            // Calculate distance-based damage falloff if enabled
+            if (useDamageFalloff)
+            {
+                float distance = Vector3.Distance(explosionPosition, hitCollider.transform.position);
+                float falloffPercent = distance / explosionRadius; // 0 = center, 1 = edge
+                
+                // Interpolate between full damage (1.0) and minimum damage multiplier
+                damageMultiplier = Mathf.Lerp(1f, minimumDamageMultiplier, falloffPercent);
+                damageMultiplier = Mathf.Clamp01(damageMultiplier);
+                
+                // Debug damage calculation
+                Debug.Log($"[MagicWeapon] {hitCollider.name}: Base damage {explosionDamage}, Distance {distance:F2}/{explosionRadius:F2}, Falloff {falloffPercent:F2}, Multiplier {damageMultiplier:F2}");
+            }
+            else
+            {
+                // No falloff - full damage to all enemies in radius
+                Debug.Log($"[MagicWeapon] {hitCollider.name}: Base damage {explosionDamage}, No falloff, Full damage");
+            }
             
             int finalDamage = Mathf.RoundToInt(explosionDamage * damageMultiplier);
+            Debug.Log($"[MagicWeapon] {hitCollider.name}: Final damage dealt: {finalDamage}");
             
-            // Deal damage to actors (legacy system)
-            if (hitCollider.TryGetComponent<Actor>(out Actor actor))
-            {
-                actor.TakeDamage(finalDamage);
-            }
-            // Deal damage to Health component (new system)
-            else if (hitCollider.TryGetComponent<Health>(out Health health))
+            // Deal damage to Health component (current system)
+            if (hitCollider.TryGetComponent<Health>(out Health health))
             {
                 health.TakeDamage(finalDamage);
+            }
+            // Deal damage to Actor component (legacy fallback - will be removed)
+            else if (hitCollider.TryGetComponent<Actor>(out Actor actor))
+            {
+                actor.TakeDamage(finalDamage);
             }
         }
         

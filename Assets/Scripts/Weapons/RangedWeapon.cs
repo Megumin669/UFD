@@ -270,6 +270,16 @@ public class RangedWeapon : BaseWeapon
     {
         if (arrowPrefab == null || playerCamera == null) return;
         
+        // Consume stamina if stamina system is present
+        if (staminaComponent != null && staminaCost > 0)
+        {
+            if (!staminaComponent.ConsumeStamina(staminaCost))
+            {
+                // Failed to consume stamina - cancel arrow firing
+                return;
+            }
+        }
+        
         Vector3 spawnPosition = arrowSpawnPoint != null ? arrowSpawnPoint.position : transform.position;
         Vector3 shootDirection = playerCamera.transform.forward;
         

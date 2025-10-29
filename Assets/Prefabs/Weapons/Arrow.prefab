@@ -258,12 +258,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3678ebde105b3942b24990c303607ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Arrow
-  damage: 1
+  damage: 20
   lifeTime: 10
   stickToSurfaces: 1
   targetLayers:
     serializedVersion: 2
     m_Bits: 4294967295
+  damageableTags:
+  - Player
+  - Enemy
   gravityScale: 1
   hitEffect: {fileID: 5334228485563152753, guid: 0134bdc80242c974b88f68d7bb298ed9, type: 3}
   hitSound: {fileID: 8300000, guid: 11245d3945c564b45a1bafad5ecb70e5, type: 3}

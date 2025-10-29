@@ -17,7 +17,7 @@ public class WeaponData : ScriptableObject
     public LayerMask attackLayer = -1;
     
     [Header("Damage Target Configuration")]
-    [Tooltip("Objects with these tags will receive damage from this weapon. Leave empty to damage all objects with Actor component.")]
+    [Tooltip("Objects with these tags will receive damage from this weapon. Leave empty to damage all objects with Health or Actor components.")]
     public string[] damageableTags = { "Player" };
     
     [Header("Audio")]
@@ -61,6 +61,10 @@ public class WeaponData : ScriptableObject
     [Range(1f, 50f)] public float staffProjectileSpeed = 15f;
     [Range(1f, 20f)] public float explosionRadius = 5f;
     [Range(1, 100)] public int explosionDamage = 25;
+    [Tooltip("Enable damage falloff based on distance from explosion center")]
+    public bool useDamageFalloff = true;
+    [Tooltip("Minimum damage percentage at explosion edge (0.5 = 50% damage at edge)")]
+    [Range(0f, 1f)] public float minimumDamageMultiplier = 0.5f;
     public LayerMask explosionLayer = -1;
     public GameObject explosionEffect;
     [Range(1f, 10f)] public float explosionEffectDuration = 5f;

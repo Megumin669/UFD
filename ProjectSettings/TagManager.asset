@@ -6,6 +6,8 @@ TagManager:
   tags:
   - WeaponSlot
   - Enemy
+  - Defense
+  - Sanctum
   layers:
   - Default
   - TransparentFX

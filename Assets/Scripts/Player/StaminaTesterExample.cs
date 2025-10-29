@@ -41,7 +41,8 @@ public class StaminaTesterExample : MonoBehaviour
         
         Debug.Log($"[{gameObject.name}] Stamina Tester initialized - Use keys:\n" +
                  $"Q (consume), E (restore), X (exhaust), C (full restore), V (toggle continuous)\n" +
-                 $"B (toggle exhaustion), I (status), U (toggle console debug), Y (force log), J (jump test)");
+                 $"B (toggle exhaustion), I (status), U (toggle console debug), Y (force log)\n" +
+                 $"J (jump test), M (magic attack test)");
         LogCurrentStatus();
     }
     
@@ -115,6 +116,20 @@ public class StaminaTesterExample : MonoBehaviour
             else
             {
                 Debug.Log($"[TEST] Jump successful - stamina consumed");
+            }
+        }
+        
+        if (Input.GetKeyDown(KeyCode.M))
+        {
+            var staminaStats = staminaComponent.GetStaminaStats();
+            Debug.Log($"[TEST] Testing magic attack stamina consumption ({staminaStats.magicAttackCost} units)");
+            if (!staminaComponent.ConsumeStamina(staminaStats.magicAttackCost))
+            {
+                Debug.Log($"[TEST] Magic attack failed - insufficient stamina!");
+            }
+            else
+            {
+                Debug.Log($"[TEST] Magic attack successful - stamina consumed");
             }
         }
         

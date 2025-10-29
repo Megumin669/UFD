@@ -145,16 +145,16 @@ public abstract class BaseWeapon : MonoBehaviour
         // Play hit sound
         PlayHitSound();
         
-        // Deal damage - check tags first, then fallback to Actor component
+        // Deal damage - check tags first, then use Health or Actor component
         if (CanDamageTarget(hit.transform.gameObject))
         {
-            if (hit.transform.TryGetComponent<Actor>(out Actor actor))
-            {
-                DealDamage(actor);
-            }
-            else if (hit.transform.TryGetComponent<Health>(out Health health))
+            if (hit.transform.TryGetComponent<Health>(out Health health))
             {
                 DealDamageToHealth(health);
+            }
+            else if (hit.transform.TryGetComponent<Actor>(out Actor actor))
+            {
+                DealDamage(actor); // Legacy fallback - will be removed
             }
         }
     }

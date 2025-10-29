@@ -23,6 +23,9 @@ MonoBehaviour:
   attackLayer:
     serializedVersion: 2
     m_Bits: 4294967295
+  damageableTags:
+  - Player
+  - Enemy
   attackSounds: []
   hitSound: {fileID: 0}
   swingSounds: []
@@ -42,6 +45,7 @@ MonoBehaviour:
   canChargeDraw: 1
   drawSound: {fileID: 0}
   releaseSound: {fileID: 0}
+  arrowSpawnPointName: ArrowSpawnPoint
   projectilePrefab: {fileID: 0}
   staffProjectileSpeed: 15
   explosionRadius: 5
@@ -53,12 +57,30 @@ MonoBehaviour:
   explosionEffectDuration: 5
   castSound: {fileID: 0}
   explosionSound: {fileID: 0}
+  projectileLifetime: 3
+  projectileSpawnPointName: ProjectileSpawnPoint
   slashRange: 1.5
   canCombo: 1
   comboWindow: 1
   weaponSlotPosition: {x: 0.221, y: -0.248, z: 0.044}
   weaponSlotRotation: {x: 346.09088, y: 4.6961026, z: 78.362206}
   weaponSlotScale: {x: 1, y: 1, z: 1}
+  baseAttackSpeed: 1
+  baseAttackDelay: 0.4
+  comboCooldown: 0.2
+  bonusDamage: 0
+  criticalChance: 0.1
+  criticalMultiplier: 2
+  comboDamageMultiplier: 1.2
+  statusEffectChance: 0
+  lifestealPercentage: 0
+  canPenetrate: 0
+  penetrationCount: 1
+  staminaCost: 10
+  manaCost: 0
+  durabilityLoss: 0
+  maxUpgradeLevel: 10
+  currentUpgradeLevel: 0
   pickupPrefab: {fileID: 5368835201847174710, guid: 85309cab13aca5a42a5a12b6b74dc320, type: 3}
   pickupRotationSpeed: 1
   pickupBobSpeed: 1

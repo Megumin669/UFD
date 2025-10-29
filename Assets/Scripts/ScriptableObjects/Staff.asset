@@ -16,7 +16,7 @@ MonoBehaviour:
   weaponType: 2
   weaponPrefab: {fileID: 4444134633738837378, guid: 50ff862d71ac0904498b9b6f44f77563, type: 3}
   weaponIcon: {fileID: 0}
-  attackDamage: 1
+  attackDamage: 3
   attackSpeed: 2
   attackDelay: 0.1
   attackDistance: 1
@@ -49,7 +49,9 @@ MonoBehaviour:
   projectilePrefab: {fileID: 1959729250425484, guid: 85fc25715e366544bbf11fc22d402924, type: 3}
   staffProjectileSpeed: 10
   explosionRadius: 4
-  explosionDamage: 5
+  explosionDamage: 3
+  useDamageFalloff: 0
+  minimumDamageMultiplier: 0.5
   explosionLayer:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -76,7 +78,7 @@ MonoBehaviour:
   lifestealPercentage: 0
   canPenetrate: 0
   penetrationCount: 1
-  staminaCost: 0
+  staminaCost: 15
   manaCost: 0
   durabilityLoss: 0
   maxUpgradeLevel: 10

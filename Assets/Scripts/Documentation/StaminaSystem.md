@@ -172,6 +172,7 @@ Runtime debug GUI and console logging system:
 - **U** - Toggle console debug logging
 - **Y** - Force log current status to console
 - **J** - Test jump stamina consumption (uses configured jump cost)
+- **M** - Test magic attack stamina consumption (uses configured magic cost)
 
 **Setup:**
 1. Add `StaminaTesterExample` to GameObject with Stamina component

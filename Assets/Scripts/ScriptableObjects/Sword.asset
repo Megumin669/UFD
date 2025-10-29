@@ -23,6 +23,9 @@ MonoBehaviour:
   attackLayer:
     serializedVersion: 2
     m_Bits: 4294967295
+  damageableTags:
+  - Player
+  - Enemy
   attackSounds: []
   hitSound: {fileID: 8300000, guid: 11245d3945c564b45a1bafad5ecb70e5, type: 3}
   swingSounds:
@@ -48,6 +51,8 @@ MonoBehaviour:
   staffProjectileSpeed: 15
   explosionRadius: 5
   explosionDamage: 25
+  useDamageFalloff: 1
+  minimumDamageMultiplier: 0.5
   explosionLayer:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -55,6 +60,7 @@ MonoBehaviour:
   explosionEffectDuration: 5
   castSound: {fileID: 0}
   explosionSound: {fileID: 0}
+  projectileLifetime: 3
   projectileSpawnPointName: ProjectileSpawnPoint
   slashRange: 1.5
   canCombo: 1
@@ -69,9 +75,6 @@ MonoBehaviour:
   criticalChance: 0.1
   criticalMultiplier: 2
   comboDamageMultiplier: 1.2
-  bonusRange: 0
-  accuracy: 1
-  projectileSpread: 0
   statusEffectChance: 0
   lifestealPercentage: 0
   canPenetrate: 0

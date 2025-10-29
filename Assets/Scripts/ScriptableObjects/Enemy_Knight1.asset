@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00c097dba96e51849ab88f0efd72abd3, type: 3}
+  m_Name: Enemy_Knight1
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyData
+  enemyName: Knight
+  description: A mysterious enemy
+  enemyPrefab: {fileID: 8361625279905939366, guid: e57bbba8b6413e64cb71fac37d86f6f4, type: 3}
+  maxHealth: 5
+  startingHealth: 0
+  healthRegenRate: 0
+  healthRegenDelay: 3
+  armor: 0
+  moveSpeed: 3
+  sprintMultiplier: 1.5
+  turnSpeed: 180
+  stoppingDistance: 1.5
+  attackDamage: 10
+  attackRange: 2
+  attackCooldown: 2
+  resistances: 
+  weaknesses: 
+  behaviorType: 0
+  detectionRange: 10
+  maxChaseRange: 25
+  playerDetectionRange: 40
+  defenseDetectionRange: 8
+  sanctumDetectionRange: 50
+  primaryTarget: 0
+  fallbackTargets: 010000000200000004000000
+  abilities:
+  - abilityType: 0
+    cooldown: 5
+    range: 0
+    duration: 0
+    power: 0
+    effect: {fileID: 0}
+    sound: {fileID: 0}
+  canFly: 0
+  flyingHeight: 3
+  ignoresWalls: 0
+  canDisableTurrets: 0
+  soulReward: 5
+  bonusSoulReward: 2
+  resourceDrops: []
+  specialDropChance: 0.1
+  movementSounds: []
+  attackSounds: []
+  hurtSounds: []
+  deathSound: {fileID: 0}
+  ambientSounds: []
+  spawnEffect: {fileID: 0}
+  deathEffect: {fileID: 0}
+  deathEffectDuration: 2
+  navMeshAgentType: 0
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 1
+  threatLevel: 1
+  preferredGroupSize: 1
+  experienceReward: 0
