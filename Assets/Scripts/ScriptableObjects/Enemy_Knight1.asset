@@ -32,9 +32,9 @@ MonoBehaviour:
   behaviorType: 0
   detectionRange: 10
   maxChaseRange: 25
-  playerDetectionRange: 40
-  defenseDetectionRange: 50
-  sanctumDetectionRange: 50
+  playerDetectionRange: 15
+  defenseDetectionRange: 200
+  sanctumDetectionRange: 300
   primaryTarget: 1
   fallbackTargets: 000000000200000004000000
   abilities:

@@ -16,7 +16,7 @@ MonoBehaviour:
   description: A basic defensive turret.
   turretIcon: {fileID: 0}
   turretPrefab: {fileID: 6909811685919139366, guid: 1b9d9e1cb89b8434ea04bc502933e3f0, type: 3}
-  maxHealth: 200
+  maxHealth: 100
   armor: 5
   buildCost: 50
   damage: 30

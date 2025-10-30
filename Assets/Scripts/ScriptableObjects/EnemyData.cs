@@ -68,20 +68,20 @@ public class EnemyData : ScriptableObject
     public EnemyBehaviorType behaviorType = EnemyBehaviorType.Aggressive;
     
     [Tooltip("Detection range for spotting targets")]
-    [Range(1f, 50f)] public float detectionRange = 10f;
+    [Range(1f, 200f)] public float detectionRange = 10f;
     
     [Tooltip("Range at which enemy gives up chase")]
-    [Range(5f, 100f)] public float maxChaseRange = 25f;
+    [Range(5f, 300f)] public float maxChaseRange = 25f;
     
     [Header("Target Priority System")]
     [Tooltip("Player detection range")]
-    [Range(1f, 50f)] public float playerDetectionRange = 10f;
+    [Range(1f, 200f)] public float playerDetectionRange = 10f;
     
     [Tooltip("Defense/Turret detection range")]
-    [Range(1f, 50f)] public float defenseDetectionRange = 8f;
+    [Range(1f, 200f)] public float defenseDetectionRange = 8f;
     
     [Tooltip("Sanctum detection range")]
-    [Range(5f, 100f)] public float sanctumDetectionRange = 50f;
+    [Range(5f, 300f)] public float sanctumDetectionRange = 50f;
     
     [Tooltip("Primary target preference - what to attack first when multiple targets are in range")]
     public PrimaryTargetType primaryTarget = PrimaryTargetType.Player;

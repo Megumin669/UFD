@@ -12,18 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 88199597794c1d347b7a2240e38701a7, type: 3}
   m_Name: Mortar
   m_EditorClassIdentifier: Assembly-CSharp::TurretData
-  turretName: Basic Turret
+  turretName: Mortar
   description: A basic defensive turret.
   turretIcon: {fileID: 0}
-  turretPrefab: {fileID: 0}
-  maxHealth: 200
+  turretPrefab: {fileID: 7385040456848777849, guid: 318a98d427564984fbe2e9592ba0713b, type: 3}
+  maxHealth: 50
   armor: 5
   buildCost: 50
-  damage: 25
+  damage: 40
   fireRate: 1.5
-  range: 15
+  range: 50
   accuracy: 0.95
-  targetPriority: 0
+  targetPriority: 1
   targetableTags:
   - Enemy
   canTargetAir: 1
@@ -33,20 +33,21 @@ MonoBehaviour:
   canRotate360: 1
   minRotationAngle: -90
   maxRotationAngle: 90
-  projectileType: 1
-  projectilePrefab: {fileID: 0}
+  projectileType: 3
+  projectilePrefab: {fileID: 1470235419733395038, guid: a8c9f478f63ef3f43810964084377ad5, type: 3}
   projectileSpeed: 20
-  projectileLifetime: 3
+  projectileLifetime: 10
   piercing: 0
   maxPierceTargets: 1
-  explosionRadius: 0
-  explosionDamage: 0
-  behaviorType: 0
+  arcHeightMultiplier: 3
+  explosionRadius: 6
+  explosionDamage: 15
+  behaviorType: 7
   requiresPower: 0
   powerConsumption: 5
   muzzleFlashEffect: {fileID: 0}
   hitEffect: {fileID: 0}
-  explosionEffect: {fileID: 0}
+  explosionEffect: {fileID: 191186, guid: 079954accd64b32419ec069129c81273, type: 3}
   fireSound: {fileID: 0}
   rotationSound: {fileID: 0}
   destroySound: {fileID: 0}

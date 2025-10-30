@@ -416,6 +416,9 @@ public class Turret : MonoBehaviour
     {
         if (turretHead == null) return;
         
+        // Lock turret head position (should only rotate, not move)
+        Vector3 lockedLocalPosition = turretHead.localPosition;
+        
         if (currentTarget != null)
         {
             // Calculate target rotation
@@ -447,6 +450,9 @@ public class Turret : MonoBehaviour
                 isRotating = false;
             }
         }
+        
+        // Ensure turret head stays in place (only rotates)
+        turretHead.localPosition = lockedLocalPosition;
     }
     
     Quaternion ConstrainRotation(Quaternion desiredRotation)
@@ -569,6 +575,15 @@ public class Turret : MonoBehaviour
         Vector3 spawnPosition = projectileSpawnPoint.position;
         Quaternion spawnRotation = turretHead.rotation;
         
+        // For ballistic projectiles, calculate predicted target position
+        Transform targetTransform = currentTarget.transform;
+        Vector3 predictedPosition = currentTarget.transform.position;
+        
+        if (turretData.projectileType == ProjectileBehavior.Ballistic)
+        {
+            predictedPosition = PredictTargetPosition();
+        }
+        
         // Apply accuracy spread
         if (turretData.accuracy < 1f)
         {
@@ -593,8 +608,11 @@ public class Turret : MonoBehaviour
             
             int effectiveDamage = turretData.GetEffectiveDamage(isFlying, enemyThreat);
             
+            // For ballistic projectiles, pass predicted position instead of actual target
+            Transform targetToPass = turretData.projectileType == ProjectileBehavior.Ballistic ? null : currentTarget;
+            
             projectile.Initialize(
-                currentTarget,
+                targetToPass,
                 effectiveDamage,
                 turretData.projectileSpeed,
                 turretData.projectileLifetime,
@@ -604,9 +622,63 @@ public class Turret : MonoBehaviour
                 turretData.explosionRadius,
                 turretData.explosionDamage,
                 turretData.hitEffect,
-                turretData.explosionEffect
+                turretData.explosionEffect,
+                turretData.arcHeightMultiplier,
+                predictedPosition  // Pass predicted position for ballistic
             );
         }
+    }
+    
+    /// <summary>
+    /// Predict where the target will be when projectile lands (for ballistic projectiles)
+    /// </summary>
+    Vector3 PredictTargetPosition()
+    {
+        if (currentTarget == null) return Vector3.zero;
+        
+        Enemy enemy = currentTarget.GetComponent<Enemy>();
+        if (enemy == null || enemy.Data == null)
+        {
+            return currentTarget.transform.position; // Can't predict, use current position
+        }
+        
+        // Get enemy's current velocity
+        Vector3 enemyVelocity = Vector3.zero;
+        
+        // Try to get NavMeshAgent velocity (most accurate for moving enemies)
+        var navAgent = enemy.GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (navAgent != null && navAgent.hasPath && navAgent.velocity.magnitude > 0.1f)
+        {
+            enemyVelocity = navAgent.velocity;
+        }
+        else
+        {
+            // If not moving, no need to predict
+            return currentTarget.transform.position;
+        }
+        
+        // Iterative prediction: calculate flight time more accurately
+        Vector3 predictedPosition = currentTarget.transform.position;
+        float gravity = Mathf.Abs(Physics.gravity.y);
+        
+        // Iterate to find accurate prediction (accounts for changing distance as target moves)
+        for (int i = 0; i < 3; i++) // 3 iterations is usually enough
+        {
+            float distance = Vector3.Distance(projectileSpawnPoint.position, predictedPosition);
+            
+            // Calculate flight time for ballistic arc to this position
+            // Using 45-degree optimal angle: time = sqrt(2 * distance / gravity)
+            float flightTime = Mathf.Sqrt(2f * distance / gravity);
+            
+            // Clamp to reasonable values
+            flightTime = Mathf.Clamp(flightTime, 0.2f, 4f);
+            
+            // Update prediction with this flight time
+            predictedPosition = currentTarget.transform.position + enemyVelocity * flightTime;
+            predictedPosition.y = currentTarget.transform.position.y; // Keep at same height
+        }
+        
+        return predictedPosition;
     }
     
     void PlayFireEffects()

@@ -111,6 +111,26 @@ accuracy = 0.7f  // Lower accuracy
 projectileSpeed = 40f // Fast projectiles
 ```
 
+### Mortar Turret
+```csharp
+turretName = "Mortar"
+behaviorType = TurretBehaviorType.Mortar
+damage = 50      // High damage
+fireRate = 2.5f  // Slow firing (reload time)
+range = 25f      // Long range
+explosionRadius = 5f    // Large area damage
+explosionDamage = 30    // Good splash damage
+projectileType = ProjectileBehavior.Ballistic // Arc trajectory
+arcHeightMultiplier = 1.5f // Moderate arc (1=low, 2=medium, 3=high)
+accuracy = 0.85f // Decent accuracy
+projectileSpeed = 15f // Moderate speed
+
+// Mortars use enhanced collision detection:
+// - Larger collision sphere (0.5 radius)
+// - Backup OverlapSphere check
+// - Proximity detonation (explodes within 1 unit of target)
+```
+
 ## Turret Behavior Types
 
 ### Standard
@@ -149,6 +169,13 @@ projectileSpeed = 40f // Fast projectiles
 - Buffs nearby turrets
 - Slows enemies
 
+### Mortar
+- +20% damage
+- +30% fire rate (slower)
+- High arc trajectory shots
+- Best with area damage
+- Can fire over obstacles
+
 ## Projectile Behaviors
 
 ### Instant (Hitscan/Laser)
@@ -171,9 +198,16 @@ projectileSpeed = 40f // Fast projectiles
 
 ### Ballistic
 - Arc trajectory with gravity
-- Realistic physics
-- Good for mortars
-- Can hit behind cover
+- Realistic physics simulation
+- Perfect for mortar turrets
+- **Balanced arc that still hits enemies effectively**
+- Can fire over obstacles and walls
+- Arc height controlled by arcHeightMultiplier:
+  - **1.0** = Low arc, fast and accurate
+  - **1.5** = Medium arc (recommended for most mortars)
+  - **2.0-3.0** = High arc, dramatic but slower
+- Base angle: 45° (optimal trajectory)
+- Includes height boost for visible arc
 
 ### Piercing
 - Goes through multiple enemies
@@ -182,10 +216,11 @@ projectileSpeed = 40f // Fast projectiles
 - Higher damage potential
 
 ### Explosive
+- **Explodes on contact with ANY surface** (terrain, enemies, walls)
 - Area damage on impact
 - Splash damage radius
+- Perfect for mortar and area-denial turrets
 - Good crowd control
-- Higher resource cost
 
 ## Target Priority Options
 

@@ -24,18 +24,26 @@ public class TurretProjectile : MonoBehaviour
     private int explosionDamage;
     private GameObject hitEffect;
     private GameObject explosionEffect;
+    private float arcHeightMultiplier;
     
     // Runtime state
     private Vector3 direction;
+    private Vector3 velocity; // For ballistic projectiles
     private float travelDistance = 0f;
     private bool hasHit = false;
     private List<Transform> hitTargets = new List<Transform>();
     private float startTime;
+    private Vector3 spawnPosition; // Track where projectile was spawned
+    
+    // Collision filtering
+    private const float MIN_TRAVEL_DISTANCE = 2.5f; // Minimum distance before checking collisions (prevents hitting own turret)
+    private LayerMask collisionMask; // What layers to check for collisions
     
     // Components
     private TrailRenderer trailRenderer;
     private LineRenderer lineRenderer;
     private Light projectileLight;
+    private Rigidbody rb;
     
     // Properties
     public bool IsActive => !hasHit && Time.time - startTime < lifetime;
@@ -45,8 +53,14 @@ public class TurretProjectile : MonoBehaviour
         trailRenderer = GetComponent<TrailRenderer>();
         lineRenderer = GetComponent<LineRenderer>();
         projectileLight = GetComponent<Light>();
+        rb = GetComponent<Rigidbody>();
         
         startTime = Time.time;
+        spawnPosition = transform.position;
+        
+        // Set up collision mask - ignore Ignore Raycast layer (usually layer 2) and projectiles
+        // This prevents hitting the turret that fired it
+        collisionMask = ~(1 << LayerMask.NameToLayer("Ignore Raycast"));
     }
     
     /// <summary>
@@ -55,7 +69,7 @@ public class TurretProjectile : MonoBehaviour
     public void Initialize(Transform targetTransform, int projectileDamage, float projectileSpeed, 
                           float projectileLifetime, ProjectileBehavior projectileBehavior, 
                           bool projectilePiercing, int maxPierce, float explRadius, int explDamage,
-                          GameObject hitFX, GameObject explFX)
+                          GameObject hitFX, GameObject explFX, float arcHeight = 1f, Vector3 predictedPosition = default)
     {
         target = targetTransform;
         damage = projectileDamage;
@@ -68,15 +82,35 @@ public class TurretProjectile : MonoBehaviour
         explosionDamage = explDamage;
         hitEffect = hitFX;
         explosionEffect = explFX;
+        arcHeightMultiplier = arcHeight;
+        
+        // Disable Rigidbody physics for our custom projectile movement
+        if (rb != null)
+        {
+            rb.isKinematic = true; // We control movement manually
+            rb.useGravity = false; // We apply gravity manually for ballistic
+        }
+        
+        // For ballistic projectiles with predicted position, use that instead of target
+        Vector3 targetPosition = (behavior == ProjectileBehavior.Ballistic && predictedPosition != default) 
+            ? predictedPosition 
+            : (target != null ? target.position : transform.position + transform.forward * 10f);
         
         // Calculate initial direction
-        if (target != null)
+        if (target != null || (behavior == ProjectileBehavior.Ballistic && predictedPosition != default))
         {
-            direction = (target.position - transform.position).normalized;
+            direction = (targetPosition - transform.position).normalized;
+            
+            // For ballistic projectiles, calculate proper arc trajectory
+            if (behavior == ProjectileBehavior.Ballistic)
+            {
+                CalculateBallisticTrajectory(targetPosition);
+            }
         }
         else
         {
             direction = transform.forward;
+            velocity = direction * speed;
         }
         
         // Handle instant projectiles (laser/hitscan)
@@ -87,11 +121,6 @@ public class TurretProjectile : MonoBehaviour
         
         // Auto-destroy after lifetime
         Destroy(gameObject, lifetime);
-        
-        if (showDebugInfo)
-        {
-            Debug.Log($"[TurretProjectile] Initialized: Damage={damage}, Speed={speed}, Behavior={behavior}");
-        }
     }
     
     void Update()
@@ -119,8 +148,7 @@ public class TurretProjectile : MonoBehaviour
                 
             case ProjectileBehavior.Ballistic:
                 UpdateBallisticMovement();
-                moveVector = direction * speed * Time.deltaTime;
-                break;
+                return; // Ballistic handles its own position update
                 
             case ProjectileBehavior.Piercing:
             case ProjectileBehavior.Explosive:
@@ -152,20 +180,109 @@ public class TurretProjectile : MonoBehaviour
     
     void UpdateBallisticMovement()
     {
-        // Add gravity effect for ballistic projectiles
-        direction += Vector3.down * 9.81f * Time.deltaTime;
-        direction = direction.normalized;
+        // Apply gravity to velocity
+        velocity += Physics.gravity * Time.deltaTime;
+        
+        // Move using velocity
+        Vector3 moveVector = velocity * Time.deltaTime;
+        transform.position += moveVector;
+        travelDistance += moveVector.magnitude; // Track travel distance for ballistic projectiles
+        
+        // Update rotation to face movement direction (makes projectile arc visually)
+        if (velocity.magnitude > 0.01f)
+        {
+            direction = velocity.normalized;
+            transform.rotation = Quaternion.LookRotation(direction);
+        }
+    }
+    
+    void CalculateBallisticTrajectory(Vector3 targetPosition)
+    {
+        // Calculate the trajectory for a ballistic arc
+        Vector3 toTarget = targetPosition - transform.position;
+        float horizontalDistance = new Vector3(toTarget.x, 0, toTarget.z).magnitude;
+        float verticalDistance = toTarget.y;
+        
+        // Use moderate arc angle for nice mortar visual (45-60 degrees)
+        float gravity = Mathf.Abs(Physics.gravity.y);
+        float baseAngle = 45f;
+        float angle = Mathf.Clamp(baseAngle + (arcHeightMultiplier - 1f) * 15f, 35f, 65f);
+        float angleRad = angle * Mathf.Deg2Rad;
+        
+        // Calculate required velocity to reach target (no speed boost - using prediction instead)
+        float velocityMagnitude = Mathf.Sqrt(horizontalDistance * gravity / Mathf.Sin(2 * angleRad));
+        
+        // Height boost for arc
+        float heightBoost = horizontalDistance * 0.15f * arcHeightMultiplier;
+        
+        // If calculation fails, use arc trajectory
+        if (float.IsNaN(velocityMagnitude) || float.IsInfinity(velocityMagnitude))
+        {
+            Vector3 horizontalDir = new Vector3(toTarget.x, 0, toTarget.z).normalized;
+            float upwardVelocity = speed * Mathf.Sin(angleRad) + heightBoost * 0.5f;
+            float forwardVelocity = speed * Mathf.Cos(angleRad);
+            velocity = horizontalDir * forwardVelocity + Vector3.up * upwardVelocity;
+            return;
+        }
+        
+        // Calculate velocity components
+        Vector3 horizontalDirection = new Vector3(toTarget.x, 0, toTarget.z).normalized;
+        float horizontalVelocity = velocityMagnitude * Mathf.Cos(angleRad);
+        float verticalVelocity = velocityMagnitude * Mathf.Sin(angleRad) + heightBoost;
+        
+        velocity = horizontalDirection * horizontalVelocity + Vector3.up * verticalVelocity;
     }
     
     void CheckCollisions()
     {
-        // Use SphereCast for better collision detection
-        float checkRadius = 0.1f;
+        // CRITICAL: Don't check collisions until projectile has traveled minimum distance
+        // This prevents hitting the turret that fired it
+        if (travelDistance < MIN_TRAVEL_DISTANCE)
+        {
+            return;
+        }
+        
+        // Use much larger collision detection for ballistic projectiles to ensure hits
+        float checkRadius = behavior == ProjectileBehavior.Ballistic ? 1.0f : 0.3f; // Much larger for ballistic
         RaycastHit hit;
         
-        if (Physics.SphereCast(transform.position, checkRadius, direction, out hit, speed * Time.deltaTime))
+        // Use velocity direction for ballistic, direction for others
+        Vector3 checkDirection = behavior == ProjectileBehavior.Ballistic ? velocity.normalized : direction;
+        float checkDistance = behavior == ProjectileBehavior.Ballistic ? velocity.magnitude * Time.deltaTime : speed * Time.deltaTime;
+        
+        // For ballistic, also add extra forward distance to catch fast-moving projectiles
+        if (behavior == ProjectileBehavior.Ballistic)
+        {
+            checkDistance *= 2f; // Look further ahead
+        }
+        
+        // Primary check - SphereCast with collision mask
+        if (Physics.SphereCast(transform.position, checkRadius, checkDirection, out hit, checkDistance, collisionMask))
         {
             HandleHit(hit);
+            return;
+        }
+        
+        // Additional OverlapSphere check for ballistic when close to ground
+        if (behavior == ProjectileBehavior.Ballistic && transform.position.y < 5f) // Near ground level
+        {
+            Collider[] hits = Physics.OverlapSphere(transform.position, checkRadius, collisionMask);
+            if (hits.Length > 0)
+            {
+                foreach (var col in hits)
+                {
+                    if (col.transform == transform) continue;
+                    
+                    // Found something - create a raycast hit
+                    RaycastHit fakeHit;
+                    Vector3 dir = (col.transform.position - transform.position).normalized;
+                    if (Physics.Raycast(transform.position, dir, out fakeHit, checkRadius * 2f, collisionMask))
+                    {
+                        HandleHit(fakeHit);
+                        return;
+                    }
+                }
+            }
         }
     }
     
@@ -177,7 +294,7 @@ public class TurretProjectile : MonoBehaviour
         float maxRange = 100f; // Max range for instant projectiles
         
         RaycastHit hit;
-        if (Physics.Raycast(rayOrigin, rayDirection, out hit, maxRange))
+        if (Physics.Raycast(rayOrigin, rayDirection, out hit, maxRange, collisionMask))
         {
             // Create visual laser effect
             CreateLaserEffect(rayOrigin, hit.point);
@@ -235,7 +352,36 @@ public class TurretProjectile : MonoBehaviour
     {
         Transform hitTransform = hit.transform;
         
-        // Check if we can damage this target
+        // For Explosive and Ballistic projectiles, explode on ANY contact (terrain, enemies, walls)
+        if (behavior == ProjectileBehavior.Explosive || behavior == ProjectileBehavior.Ballistic)
+        {
+            // Deal direct damage if it's a valid target
+            if (CanDamageTarget(hitTransform) && !HasTargetBeenHit(hitTransform))
+            {
+                DealDamage(hitTransform, hit.point);
+                hitTargets.Add(hitTransform);
+            }
+            
+            // Create explosion at hit point regardless of what was hit
+            if (explosionRadius > 0)
+            {
+                CreateExplosion(hit.point);
+            }
+            
+            // Create hit effect
+            CreateHitEffect(hit.point, hit.normal);
+            
+            hasHit = true;
+            Destroy(gameObject, 0.1f);
+            
+            if (showDebugInfo)
+            {
+                Debug.Log($"[TurretProjectile] {behavior} hit {hitTransform.name}, creating explosion");
+            }
+            return;
+        }
+        
+        // For other projectile types, check if we can damage this target
         if (!CanDamageTarget(hitTransform))
         {
             return; // Continue flying if we can't damage this target
@@ -256,7 +402,7 @@ public class TurretProjectile : MonoBehaviour
         // Check if projectile should stop
         if (!piercing || hitTargets.Count >= maxPierceTargets)
         {
-            // Create explosion if applicable
+            // Create explosion if applicable (for non-explosive projectiles with explosion radius)
             if (explosionRadius > 0)
             {
                 CreateExplosion(hit.point);
@@ -319,8 +465,8 @@ public class TurretProjectile : MonoBehaviour
     {
         if (explosionRadius <= 0) return;
         
-        // Find all targets in explosion radius
-        Collider[] colliders = Physics.OverlapSphere(explosionCenter, explosionRadius);
+        // Find all targets in explosion radius (use collision mask to avoid hitting turrets)
+        Collider[] colliders = Physics.OverlapSphere(explosionCenter, explosionRadius, collisionMask);
         
         foreach (Collider col in colliders)
         {

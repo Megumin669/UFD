@@ -145,6 +145,16 @@ public class Enemy : MonoBehaviour
             navAgent.angularSpeed = enemyData.turnSpeed;
             navAgent.stoppingDistance = enemyData.stoppingDistance;
             navAgent.agentTypeID = enemyData.navMeshAgentType;
+            navAgent.enabled = true; // Ensure NavMeshAgent is enabled
+            
+            if (showDebugInfo)
+            {
+                Debug.Log($"[{gameObject.name}] NavMeshAgent configured: Speed={navAgent.speed}, Enabled={navAgent.enabled}, OnNavMesh={navAgent.isOnNavMesh}");
+            }
+        }
+        else if (showDebugInfo)
+        {
+            Debug.LogWarning($"[{gameObject.name}] No NavMeshAgent component found! Enemy will not be able to move.");
         }
         
         // Setup flying behavior
@@ -166,8 +176,26 @@ public class Enemy : MonoBehaviour
             }
         }
         
-        // Set initial state
-        ChangeState(EnemyState.Patrol);
+        // Find initial target immediately on spawn
+        FindBestTarget();
+        
+        // Set initial state based on whether we found a target
+        if (currentTarget != null)
+        {
+            ChangeState(EnemyState.Chase);
+            if (showDebugInfo)
+            {
+                Debug.Log($"[{gameObject.name}] Enemy spawned with target: {currentTarget.name} - Starting Chase");
+            }
+        }
+        else
+        {
+            ChangeState(EnemyState.Idle);
+            if (showDebugInfo)
+            {
+                Debug.Log($"[{gameObject.name}] Enemy spawned with no target - Starting Idle");
+            }
+        }
         
         if (showDebugInfo)
         {
@@ -202,9 +230,6 @@ public class Enemy : MonoBehaviour
             case EnemyState.Idle:
                 HandleIdleState();
                 break;
-            case EnemyState.Patrol:
-                HandlePatrolState();
-                break;
             case EnemyState.Chase:
                 HandleChaseState();
                 break;
@@ -222,9 +247,21 @@ public class Enemy : MonoBehaviour
     
     void UpdateTargetDetection()
     {
+        if (showDebugInfo)
+        {
+            string targetName = currentTarget != null ? currentTarget.name : "null";
+            float distance = currentTarget != null ? DistanceToTarget : float.MaxValue;
+            Debug.Log($"[{gameObject.name}] UpdateTargetDetection: currentTarget={targetName}, state={currentState}, distance={distance:F1}");
+        }
+        
         if (currentTarget == null || DistanceToTarget > enemyData.maxChaseRange)
         {
             // Lost target or don't have one - try to find a new one
+            if (showDebugInfo)
+            {
+                Debug.Log($"[{gameObject.name}] Need new target - searching...");
+            }
+            
             FindBestTarget();
             
             // Only start the give-up timer if we've had a target before AND still can't find one
@@ -241,6 +278,10 @@ public class Enemy : MonoBehaviour
                         HandleGiveUp();
                         return;
                     }
+                }
+                else if (showDebugInfo)
+                {
+                    Debug.Log($"[{gameObject.name}] Never had a target, continuing to search...");
                 }
                 // If we've never had a target, don't start the timer - keep searching indefinitely
             }
@@ -301,19 +342,36 @@ public class Enemy : MonoBehaviour
     
     GameObject FindPrimaryTarget()
     {
+        if (showDebugInfo)
+        {
+            Debug.Log($"[{gameObject.name}] Finding primary target type: {enemyData.primaryTarget}");
+        }
+        
+        GameObject found = null;
         switch (enemyData.primaryTarget)
         {
             case PrimaryTargetType.Player:
-                return FindPlayerInRange(enemyData.playerDetectionRange);
+                found = FindPlayerInRange(enemyData.playerDetectionRange);
+                break;
             case PrimaryTargetType.Defenses:
-                return FindDefenseInRange(enemyData.defenseDetectionRange);
+                found = FindDefenseInRange(enemyData.defenseDetectionRange);
+                break;
             case PrimaryTargetType.Sanctum:
-                return FindSanctumInRange(enemyData.sanctumDetectionRange);
+                found = FindSanctumInRange(enemyData.sanctumDetectionRange);
+                break;
             case PrimaryTargetType.Closest:
-                return FindClosestTargetInRange(enemyData.detectionRange);
+                found = FindClosestTargetInRange(enemyData.detectionRange);
+                break;
             default:
-                return null;
+                break;
         }
+        
+        if (showDebugInfo)
+        {
+            Debug.Log($"[{gameObject.name}] Primary target search result: {(found != null ? found.name : "null")}");
+        }
+        
+        return found;
     }
     
     GameObject FindTargetByPriority(TargetPriority priority)
@@ -374,38 +432,11 @@ public class Enemy : MonoBehaviour
         }
     }
     
-    void HandlePatrolState()
-    {
-        // Try to find a target if we don't have one
-        if (currentTarget == null)
-        {
-            FindBestTarget();
-        }
-        
-        // If we found a target and it's in range, start chasing
-        if (currentTarget != null && DistanceToTarget <= GetDetectionRangeForTarget(currentTarget))
-        {
-            ChangeState(EnemyState.Chase);
-        }
-        
-        // Basic patrol behavior - can be expanded later
-        if (navAgent != null && !navAgent.hasPath)
-        {
-            // Simple random wandering when no target
-            Vector3 randomDirection = Random.insideUnitSphere * 10f;
-            randomDirection += transform.position;
-            randomDirection.y = transform.position.y; // Keep same height
-            
-            NavMesh.SamplePosition(randomDirection, out NavMeshHit hit, 10f, 1);
-            navAgent.SetDestination(hit.position);
-        }
-    }
-    
     void HandleChaseState()
     {
         if (currentTarget == null)
         {
-            // Don't immediately give up - go to Idle to keep searching more actively
+            // Lost target - go to Idle to search for new one
             ChangeState(EnemyState.Idle);
             return;
         }
@@ -418,14 +449,33 @@ public class Enemy : MonoBehaviour
         }
         else if (distanceToTarget > enemyData.maxChaseRange)
         {
-            ChangeState(EnemyState.Patrol);
+            // Target too far - give up and go back to searching
+            ChangeState(EnemyState.Idle);
         }
         else
         {
             // Move towards target
-            if (navAgent != null)
+            if (navAgent != null && navAgent.enabled)
             {
+                if (!navAgent.isOnNavMesh)
+                {
+                    if (showDebugInfo)
+                    {
+                        Debug.LogWarning($"[{gameObject.name}] Enemy is NOT on NavMesh! Position: {transform.position}");
+                    }
+                    return;
+                }
+                
                 navAgent.SetDestination(currentTarget.transform.position);
+                
+                if (showDebugInfo && !navAgent.hasPath)
+                {
+                    Debug.LogWarning($"[{gameObject.name}] NavAgent has NO PATH to target {currentTarget.name}. Distance: {distanceToTarget:F1}");
+                }
+            }
+            else if (showDebugInfo)
+            {
+                Debug.LogWarning($"[{gameObject.name}] Cannot move - NavAgent is null or disabled");
             }
         }
     }
@@ -605,11 +655,30 @@ public class Enemy : MonoBehaviour
     {
         if (currentState == newState) return;
         
+        EnemyState previousState = currentState;
         currentState = newState;
+        
+        // When entering Chase state, immediately set destination
+        if (newState == EnemyState.Chase && currentTarget != null)
+        {
+            if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh)
+            {
+                navAgent.SetDestination(currentTarget.transform.position);
+                
+                if (showDebugInfo)
+                {
+                    Debug.Log($"[{gameObject.name}] Entering Chase state - Setting destination to {currentTarget.name} at {currentTarget.transform.position}");
+                }
+            }
+            else if (showDebugInfo)
+            {
+                Debug.LogWarning($"[{gameObject.name}] Entering Chase state but NavAgent issue: NavAgent={navAgent != null}, Enabled={navAgent?.enabled}, OnNavMesh={navAgent?.isOnNavMesh}");
+            }
+        }
         
         if (showDebugInfo)
         {
-            Debug.Log($"[{gameObject.name}] State changed to: {newState}");
+            Debug.Log($"[{gameObject.name}] State changed: {previousState} → {newState}");
         }
     }
     
@@ -688,6 +757,12 @@ public class Enemy : MonoBehaviour
         {
             // Find nearest defense structure
             GameObject[] defenses = GameObject.FindGameObjectsWithTag("Defense");
+            
+            if (showDebugInfo && defenses.Length > 0)
+            {
+                Debug.Log($"[{gameObject.name}] Found {defenses.Length} defenses with 'Defense' tag in scene");
+            }
+            
             GameObject nearest = null;
             float nearestDistance = range;
             
@@ -700,7 +775,17 @@ public class Enemy : MonoBehaviour
                 {
                     nearest = defense;
                     nearestDistance = distance;
+                    
+                    if (showDebugInfo)
+                    {
+                        Debug.Log($"[{gameObject.name}] Found defense '{defense.name}' at distance {distance:F1} (range limit: {range})");
+                    }
                 }
+            }
+            
+            if (showDebugInfo && nearest == null && defenses.Length > 0)
+            {
+                Debug.Log($"[{gameObject.name}] {defenses.Length} defenses found but all out of range {range}");
             }
             
             return nearest;
@@ -983,8 +1068,7 @@ public class Enemy : MonoBehaviour
 /// </summary>
 public enum EnemyState
 {
-    Idle,       // Standing still, waiting
-    Patrol,     // Moving on patrol route
+    Idle,       // Standing still, waiting for target
     Chase,      // Pursuing a target
     Attack,     // Attacking a target
     Flee,       // Running away from danger

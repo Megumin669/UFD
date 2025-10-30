@@ -11,7 +11,8 @@ public enum TurretBehaviorType
     Rapid,             // Fast shooting, lower damage
     Sniper,            // Long range, high damage, slow reload
     Area,              // Area denial with splash damage
-    Support            // Buffs nearby turrets or slows enemies
+    Support,           // Buffs nearby turrets or slows enemies
+    Mortar             // High arc trajectory, area damage
 }
 
 /// <summary>
@@ -133,6 +134,9 @@ public class TurretData : ScriptableObject
     [Tooltip("Maximum enemies a projectile can hit (if piercing)")]
     [Range(1, 10)] public int maxPierceTargets = 1;
     
+    [Tooltip("Arc height multiplier for ballistic/mortar projectiles (1=low arc, 2=medium, 3=high arc)")]
+    [Range(0.5f, 5f)] public float arcHeightMultiplier = 1.5f;
+    
     [Header("Area of Effect")]
     [Tooltip("Explosion radius for area damage (0 = no explosion)")]
     [Range(0f, 15f)] public float explosionRadius = 0f;
@@ -222,6 +226,8 @@ public class TurretData : ScriptableObject
                 return fireRate * 1.5f; // Heavy turrets fire slower
             case TurretBehaviorType.Sniper:
                 return fireRate * 2.0f; // Sniper turrets fire much slower
+            case TurretBehaviorType.Mortar:
+                return fireRate * 1.3f; // Mortars fire slower due to reload
             default:
                 return fireRate;
         }
@@ -247,6 +253,9 @@ public class TurretData : ScriptableObject
                 break;
             case TurretBehaviorType.Rapid:
                 damageMultiplier = 0.8f; // Rapid turrets do less damage per shot
+                break;
+            case TurretBehaviorType.Mortar:
+                damageMultiplier = 1.2f; // Mortars do good area damage
                 break;
         }
         
