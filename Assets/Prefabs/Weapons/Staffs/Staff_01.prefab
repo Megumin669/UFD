@@ -24,13 +24,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3961193273796343771}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.775, z: 0.093}
+  m_LocalRotation: {x: -0, y: -0.0007985747, z: -0, w: 0.9999997}
+  m_LocalPosition: {x: -0.258, y: 0.77499986, z: 0.09300006}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3956249870682277688}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -0.092, z: 0}
 --- !u!1001 &3561737311010857171
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -140,20 +140,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1e98c3eca83e5a42bf5fe1e7118c519, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MagicWeapon
-  weaponName: Base Weapon
-  attackDistance: 3
-  attackDelay: 0.4
-  attackSpeed: 1
-  attackDamage: 1
-  attackLayer:
-    serializedVersion: 2
-    m_Bits: 0
-  hitEffect: {fileID: 0}
-  hitEffectDuration: 10
-  attackSounds: []
-  hitSound: {fileID: 0}
-  attackAnimations:
-  - Attack 1
-  - Attack 2
   weaponData: {fileID: 11400000, guid: 27b37ce7d491ce64293a7cd4a1aa75e1, type: 2}
   projectileSpawnPoint: {fileID: 3136738496082929551}

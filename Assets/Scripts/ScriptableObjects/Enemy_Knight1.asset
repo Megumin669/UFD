@@ -15,12 +15,12 @@ MonoBehaviour:
   enemyName: Knight
   description: A mysterious enemy
   enemyPrefab: {fileID: 8361625279905939366, guid: e57bbba8b6413e64cb71fac37d86f6f4, type: 3}
-  maxHealth: 5
+  maxHealth: 100
   startingHealth: 0
   healthRegenRate: 0
   healthRegenDelay: 3
   armor: 0
-  moveSpeed: 3
+  moveSpeed: 4
   sprintMultiplier: 1.5
   turnSpeed: 180
   stoppingDistance: 1.5
@@ -33,10 +33,10 @@ MonoBehaviour:
   detectionRange: 10
   maxChaseRange: 25
   playerDetectionRange: 40
-  defenseDetectionRange: 8
+  defenseDetectionRange: 50
   sanctumDetectionRange: 50
-  primaryTarget: 0
-  fallbackTargets: 010000000200000004000000
+  primaryTarget: 1
+  fallbackTargets: 000000000200000004000000
   abilities:
   - abilityType: 0
     cooldown: 5

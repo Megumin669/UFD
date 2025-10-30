@@ -16,6 +16,10 @@ PrefabInstance:
       propertyPath: showDebugInfo
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 8595913397528490534, guid: fce74bd34ec6aae4a8a62439c30af2e0, type: 3}
+      propertyPath: m_StoppingDistance
+      value: 0.5
+      objectReference: {fileID: 0}
     - target: {fileID: 8953863879292068232, guid: fce74bd34ec6aae4a8a62439c30af2e0, type: 3}
       propertyPath: m_Name
       value: Knight1
